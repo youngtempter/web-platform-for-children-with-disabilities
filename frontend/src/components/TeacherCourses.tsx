@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Plus, Edit, X, ChevronDown, ChevronRight, Settings } from 'lucide-react';
+import { BookOpen, Plus, Edit, X, ChevronDown, ChevronRight, Settings, Trash2, Loader2 } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -29,6 +29,20 @@ export function TeacherCourses() {
   const [newLessonTitle, setNewLessonTitle] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingLessonId, setDeletingLessonId] = useState<number | null>(null);
+  const [newLevel, setNewLevel] = useState<string>('beginner');
+
+  const levelOptions = [
+    { value: 'beginner', labelRu: 'Начальный', labelKz: 'Бастауыш' },
+    { value: 'intermediate', labelRu: 'Средний', labelKz: 'Орташа' },
+    { value: 'advanced', labelRu: 'Продвинутый', labelKz: 'Жоғары' },
+  ];
+
+  const getLevelLabel = (level: string) => {
+    const option = levelOptions.find(o => o.value === level);
+    return option ? t(option.labelRu, option.labelKz) : level;
+  };
 
   const myCourses = courses.filter((c) => c.teacher_id === user?.id);
 
@@ -69,9 +83,10 @@ export function TeacherCourses() {
     if (!newTitle.trim() || saving) return;
     setSaving(true);
     try {
-      await coursesApi.createCourse({ title: newTitle.trim(), description: newDesc.trim(), level: 'beginner' });
+      await coursesApi.createCourse({ title: newTitle.trim(), description: newDesc.trim(), level: newLevel });
       setNewTitle('');
       setNewDesc('');
+      setNewLevel('beginner');
       setShowCreate(false);
       loadCourses();
       showSuccess(t('Курс создан', 'Курс жасалды'));
@@ -86,9 +101,10 @@ export function TeacherCourses() {
     if (!newTitle.trim() || saving) return;
     setSaving(true);
     try {
-      await coursesApi.updateCourse(id, { title: newTitle.trim(), description: newDesc.trim() });
+      await coursesApi.updateCourse(id, { title: newTitle.trim(), description: newDesc.trim(), level: newLevel });
       setNewTitle('');
       setNewDesc('');
+      setNewLevel('beginner');
       setEditingId(null);
       loadCourses();
       showSuccess(t('Изменения сохранены', 'Өзгерістер сақталды'));
@@ -120,6 +136,47 @@ export function TeacherCourses() {
     }
   };
 
+  const handleDeleteCourse = async (courseId: number) => {
+    const course = courses.find(c => c.id === courseId);
+    const confirmMsg = t(
+      `Удалить курс "${course?.title}"? Все уроки курса также будут удалены.`,
+      `"${course?.title}" курсын жою керек пе? Барлық сабақтар да жойылады.`
+    );
+    if (!confirm(confirmMsg)) return;
+    
+    setDeletingId(courseId);
+    try {
+      await coursesApi.deleteCourse(courseId);
+      loadCourses();
+      showSuccess(t('Курс удален', 'Курс жойылды'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Ошибка удаления', 'Жою қатесі'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId: number, courseId: number) => {
+    const lesson = courseLessons[courseId]?.find(l => l.id === lessonId);
+    const confirmMsg = t(
+      `Удалить урок "${lesson?.title}"?`,
+      `"${lesson?.title}" сабағын жою керек пе?`
+    );
+    if (!confirm(confirmMsg)) return;
+    
+    setDeletingLessonId(lessonId);
+    try {
+      await lessonsApi.deleteLesson(lessonId);
+      loadCourseLessons(courseId);
+      setLessonCounts((prev) => ({ ...prev, [courseId]: Math.max(0, (prev[courseId] ?? 1) - 1) }));
+      showSuccess(t('Урок удален', 'Сабақ жойылды'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Ошибка удаления', 'Жою қатесі'));
+    } finally {
+      setDeletingLessonId(null);
+    }
+  };
+
   const loadCourseLessons = async (courseId: number) => {
     try {
       const lessons = await lessonsApi.listLessonsByCourse(courseId);
@@ -142,9 +199,9 @@ export function TeacherCourses() {
 
   return (
     <section className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center shrink-0">
             <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
@@ -152,7 +209,7 @@ export function TeacherCourses() {
             <p className="text-gray-600 dark:text-gray-400 text-xs">{t('Управление курсами и уроками', 'Курстар мен сабақтарды басқару')}</p>
           </div>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700 rounded-xl text-sm h-9" onClick={() => setShowCreate(true)}>
+        <Button className="bg-purple-600 hover:bg-purple-700 rounded-xl text-sm h-9 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-1" />
           {t('Создать курс', 'Курс жасау')}
         </Button>
@@ -174,9 +231,23 @@ export function TeacherCourses() {
               <Label className="text-xs">{t('Описание', 'Сипаттама')}</Label>
               <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder={t('Описание', 'Сипаттама')} className="mt-1 h-9 rounded-lg dark:bg-gray-700 dark:border-gray-600" />
             </div>
+            <div>
+              <Label className="text-xs">{t('Уровень сложности', 'Қиындық деңгейі')}</Label>
+              <select
+                value={newLevel}
+                onChange={(e) => setNewLevel(e.target.value)}
+                className="mt-1 h-9 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                {levelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.labelRu, option.labelKz)}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex gap-2">
               <Button size="sm" className="rounded-lg h-9 bg-purple-600 hover:bg-purple-700" onClick={handleCreateCourse} disabled={saving}>{t('Создать', 'Жасау')}</Button>
-              <Button size="sm" variant="outline" className="rounded-lg h-9 dark:border-gray-600 dark:hover:bg-gray-700" onClick={() => { setShowCreate(false); setNewTitle(''); setNewDesc(''); }}>{t('Отмена', 'Болдырмау')}</Button>
+              <Button size="sm" variant="outline" className="rounded-lg h-9 dark:border-gray-600 dark:hover:bg-gray-700" onClick={() => { setShowCreate(false); setNewTitle(''); setNewDesc(''); setNewLevel('beginner'); }}>{t('Отмена', 'Болдырмау')}</Button>
             </div>
           </div>
         </Card>
@@ -188,37 +259,65 @@ export function TeacherCourses() {
       <div className="space-y-3">
         {myCourses.map((course) => (
           <div key={course.id}>
-            <Card className="p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => toggleExpandCourse(course.id)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+            <Card className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
+                  <button onClick={() => toggleExpandCourse(course.id)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mt-0.5 sm:mt-0 shrink-0">
                     {expandedCourseId === course.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </button>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     {editingId === course.id ? (
-                      <div className="flex gap-2 items-center flex-wrap">
-                        <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="h-8 text-sm w-48 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Название', 'Атауы')} />
-                        <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="h-8 text-sm w-48 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Описание', 'Сипаттама')} />
-                        <Button size="sm" className="rounded-lg h-8 text-xs bg-green-600 hover:bg-green-700" onClick={() => handleSaveEdit(course.id)} disabled={saving}>{t('Сохранить', 'Сақтау')}</Button>
-                        <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs dark:border-gray-600" onClick={() => { setEditingId(null); setNewTitle(''); setNewDesc(''); }}><X className="w-3 h-3" /></Button>
+                      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                        <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="h-8 text-sm w-full sm:w-36 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Название', 'Атауы')} />
+                        <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="h-8 text-sm w-full sm:w-36 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Описание', 'Сипаттама')} />
+                        <select
+                          value={newLevel}
+                          onChange={(e) => setNewLevel(e.target.value)}
+                          className="h-8 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          {levelOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {t(option.labelRu, option.labelKz)}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="rounded-lg h-8 text-xs bg-green-600 hover:bg-green-700 flex-1 sm:flex-none" onClick={() => handleSaveEdit(course.id)} disabled={saving}>{t('Сохранить', 'Сақтау')}</Button>
+                          <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs dark:border-gray-600" onClick={() => { setEditingId(null); setNewTitle(''); setNewDesc(''); setNewLevel('beginner'); }}><X className="w-3 h-3" /></Button>
+                        </div>
                       </div>
                     ) : (
                       <>
-                        <h3 className="text-gray-800 dark:text-gray-100 text-sm font-medium">{course.title}</h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{lessonCounts[course.id] ?? 0} {t('уроков', 'сабақ')}</p>
-                        {course.description && <p className="text-xs text-gray-500 dark:text-gray-500">{course.description}</p>}
+                        <h3 className="text-gray-800 dark:text-gray-100 text-sm font-medium truncate">{course.title}</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{lessonCounts[course.id] ?? 0} {t('уроков', 'сабақ')} · {getLevelLabel(course.level)}</p>
+                        {course.description && <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{course.description}</p>}
                       </>
                     )}
                   </div>
                 </div>
                 {editingId !== course.id && (
-                  <div className="flex gap-1.5 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs dark:border-gray-600 dark:hover:bg-gray-700" onClick={() => { setEditingId(course.id); setNewTitle(course.title); setNewDesc(course.description ?? ''); }}>
+                  <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs dark:border-gray-600 dark:hover:bg-gray-700 flex-1 sm:flex-none" onClick={() => { setEditingId(course.id); setNewTitle(course.title); setNewDesc(course.description ?? ''); setNewLevel(course.level); }}>
                       <Edit className="w-3 h-3 mr-1" />
-                      {t('Редактировать', 'Өңдеу')}
+                      <span className="hidden xs:inline">{t('Редактировать', 'Өңдеу')}</span>
+                      <span className="xs:hidden">{t('Ред.', 'Өңд.')}</span>
                     </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs dark:border-gray-600 dark:hover:bg-gray-700" onClick={() => setAddingLessonId(course.id)}>
+                    <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs dark:border-gray-600 dark:hover:bg-gray-700 flex-1 sm:flex-none" onClick={() => setAddingLessonId(course.id)}>
+                      <Plus className="w-3 h-3 mr-1 sm:hidden" />
                       {t('Добавить урок', 'Сабақ қосу')}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="rounded-lg h-8 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-gray-600" 
+                      onClick={() => handleDeleteCourse(course.id)}
+                      disabled={deletingId === course.id}
+                    >
+                      {deletingId === course.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
                     </Button>
                   </div>
                 )}
@@ -227,7 +326,7 @@ export function TeacherCourses() {
 
             {/* Expanded lessons list - left aligned */}
             {expandedCourseId === course.id && (
-              <div className="mt-2 space-y-2">
+              <div className="ml-2 sm:ml-6 mt-1 border-l-2 border-purple-200 dark:border-purple-700 pl-2 sm:pl-4 space-y-1">
                 {(courseLessons[course.id] || []).map((lesson) => (
                   <div key={lesson.id}>
                     {editingLessonId === lesson.id ? (
@@ -237,31 +336,61 @@ export function TeacherCourses() {
                         onSaved={() => loadCourseLessons(course.id)}
                       />
                     ) : (
-                      <Card className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border flex items-center justify-start gap-3">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 w-6 shrink-0">{lesson.order + 1}.</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 dark:text-gray-100 truncate">{lesson.title}</p>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            {lesson.video_url && <span className="text-green-600">📹 {t('Видео', 'Видео')}</span>}
-                            {lesson.has_sign_language && <span className="text-purple-600">🤟 {t('Жестовый', 'Ым тілі')}</span>}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-2 px-2 sm:px-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-colors group">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                          <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-semibold shrink-0">
+                            {lesson.order + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{lesson.title}</p>
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5">
+                              {lesson.video_url && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400">
+                                  📹 <span className="hidden sm:inline">{t('Видео', 'Видео')}</span>
+                                </span>
+                              )}
+                              {lesson.has_sign_language && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400">
+                                  🤟 <span className="hidden sm:inline">{t('Жестовый', 'Ым тілі')}</span>
+                                </span>
+                              )}
+                              {!lesson.video_url && !lesson.has_sign_language && (
+                                <span className="text-xs text-gray-400 dark:text-gray-500">{t('Текст', 'Мәтін')}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg h-7 text-xs shrink-0"
-                          onClick={() => setEditingLessonId(lesson.id)}
-                        >
-                          <Settings className="w-3 h-3 mr-1" />
-                          {t('Настроить', 'Баптау')}
-                        </Button>
-                      </Card>
+                        <div className="flex items-center gap-1.5 shrink-0 sm:opacity-70 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg h-7 sm:h-8 text-xs dark:border-gray-500 dark:hover:bg-gray-700 flex-1 sm:flex-none"
+                            onClick={() => setEditingLessonId(lesson.id)}
+                          >
+                            <Settings className="w-3.5 h-3.5 sm:mr-1.5" />
+                            <span className="hidden sm:inline">{t('Настроить', 'Баптау')}</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg h-7 sm:h-8 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:border-gray-500"
+                            onClick={() => handleDeleteLesson(lesson.id, course.id)}
+                            disabled={deletingLessonId === lesson.id}
+                          >
+                            {deletingLessonId === lesson.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
                 {(courseLessons[course.id] || []).length === 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 py-2">
-                    {t('Нет уроков', 'Сабақтар жоқ')}
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 py-2 sm:py-3 px-2 sm:px-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+                    {t('Уроков пока нет. Нажмите «Добавить урок».', 'Сабақтар жоқ. «Сабақ қосу» басыңыз.')}
                   </p>
                 )}
               </div>

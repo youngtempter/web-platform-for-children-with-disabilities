@@ -35,6 +35,19 @@ export interface UserUpdate {
   email?: string;
 }
 
+export interface PasswordChange {
+  current_password: string;
+  new_password: string;
+}
+
+export interface UserAchievementStats {
+  completed_lessons: number;
+  enrolled_courses: number;
+  completed_courses: number;
+  passed_quizzes: number;
+  perfect_quizzes: number;
+}
+
 export interface CourseResponse {
   id: number;
   title: string;
@@ -167,6 +180,13 @@ export interface TeacherStats {
   average_progress: number;
 }
 
+export interface StudentQuizStats {
+  attempts_count: number;
+  passed_count: number;
+  best_score: number | null;
+  avg_score: number | null;
+}
+
 export interface StudentWithProgress {
   id: number;
   email: string;
@@ -176,6 +196,7 @@ export interface StudentWithProgress {
   course_title: string;
   progress: number;
   enrolled_at: string;
+  quiz_stats: StudentQuizStats | null;
 }
 
 export interface TeacherStudentsResponse {
@@ -233,5 +254,41 @@ export interface NewsUpdate {
 
 export interface NewsListResponse {
   news: NewsResponse[];
+  total: number;
+}
+
+// Community types
+export interface SuccessPostResponse {
+  id: number;
+  user_id: number;
+  author_name: string;
+  content: string;
+  likes_count: number;
+  liked_by_me: boolean;
+  created_at: string;
+}
+
+export interface SuccessPostCreate {
+  content: string;
+}
+
+export interface SuccessPostListResponse {
+  posts: SuccessPostResponse[];
+  total: number;
+}
+
+// Study Friends types
+export interface StudyFriendResponse {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  common_courses_count: number;
+  common_courses: string[];
+}
+
+export interface StudyFriendsListResponse {
+  friends: StudyFriendResponse[];
   total: number;
 }

@@ -130,6 +130,38 @@ def get_user(
     return UserResponse.model_validate(user)
 
 
+class RoleUpdate(BaseModel):
+    role: str
+
+
+@router.patch("/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: int,
+    body: RoleUpdate,
+    current_user: CurrentUser,
+    session: Session = Depends(get_session),
+):
+    """Update user role. Admin only."""
+    require_admin(current_user)
+    
+    if body.role not in ("student", "teacher", "admin"):
+        raise HTTPException(status_code=400, detail="Invalid role")
+    
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    
+    user.role = body.role
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return UserResponse.model_validate(user)
+
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: int,

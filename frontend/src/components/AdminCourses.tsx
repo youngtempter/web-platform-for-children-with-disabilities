@@ -97,9 +97,9 @@ export function AdminCourses() {
 
   return (
     <section className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center shrink-0">
             <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
           <div>
@@ -107,7 +107,7 @@ export function AdminCourses() {
             <p className="text-gray-600 dark:text-gray-400 text-xs">{t('Управление всеми курсами', 'Барлық курстарды басқару')}</p>
           </div>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700 rounded-xl text-sm h-9" onClick={() => setShowCreate(true)}>
+        <Button className="bg-purple-600 hover:bg-purple-700 rounded-xl text-sm h-9 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-1" />
           {t('Добавить курс', 'Курс қосу')}
         </Button>
@@ -142,29 +142,33 @@ export function AdminCourses() {
 
       <div className="space-y-3">
         {courses.map((c) => (
-          <Card key={c.id} className="p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              {editingId === c.id ? (
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 text-sm w-48 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Название', 'Атауы')} />
-                  <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-8 text-sm w-48 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Описание', 'Сипаттама')} />
-                  <Button size="sm" className="rounded-lg h-8 text-xs bg-green-600 hover:bg-green-700" onClick={saveEdit} disabled={saving}>{t('Сохранить', 'Сақтау')}</Button>
-                  <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs dark:border-gray-600" onClick={() => setEditingId(null)}><X className="w-3 h-3" /></Button>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-gray-800 dark:text-gray-100 text-sm font-medium">{c.title}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{lessonCounts[c.id] ?? 0} {t('уроков', 'сабақ')} · {c.level}</p>
-                  {c.description && <p className="text-xs text-gray-500 dark:text-gray-500">{c.description}</p>}
-                </>
+          <Card key={c.id} className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0 text-left">
+                {editingId === c.id ? (
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 text-sm w-full sm:w-40 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Название', 'Атауы')} />
+                    <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="h-8 text-sm w-full sm:w-40 dark:bg-gray-700 dark:border-gray-600" placeholder={t('Описание', 'Сипаттама')} />
+                    <div className="flex gap-2">
+                      <Button size="sm" className="rounded-lg h-8 text-xs bg-green-600 hover:bg-green-700 flex-1 sm:flex-none" onClick={saveEdit} disabled={saving}>{t('Сохранить', 'Сақтау')}</Button>
+                      <Button size="sm" variant="outline" className="rounded-lg h-8 text-xs dark:border-gray-600" onClick={() => setEditingId(null)}><X className="w-3 h-3" /></Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-gray-800 dark:text-gray-100 text-sm font-medium truncate">{c.title}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{lessonCounts[c.id] ?? 0} {t('уроков', 'сабақ')} · {c.level}</p>
+                    {c.description && <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 truncate">{c.description}</p>}
+                  </>
+                )}
+              </div>
+              {editingId !== c.id && (
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs shrink-0 dark:border-gray-600 dark:hover:bg-gray-700 w-full sm:w-auto" onClick={() => startEdit(c)}>
+                  <Edit className="w-3 h-3 mr-1" />
+                  {t('Редактировать', 'Өңдеу')}
+                </Button>
               )}
             </div>
-            {editingId !== c.id && (
-              <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs shrink-0 dark:border-gray-600 dark:hover:bg-gray-700" onClick={() => startEdit(c)}>
-                <Edit className="w-3 h-3 mr-1" />
-                {t('Редактировать', 'Өңдеу')}
-              </Button>
-            )}
           </Card>
         ))}
       </div>

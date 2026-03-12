@@ -14,7 +14,6 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AdminUsers } from './components/AdminUsers';
 import { AdminCourses } from './components/AdminCourses';
 import { AdminStats } from './components/AdminStats';
-import { AdminCommunity } from './components/AdminCommunity';
 import { AdminNews } from './components/AdminNews';
 import { TeacherHome } from './components/TeacherHome';
 import { NewsBlock } from './components/NewsBlock';
@@ -116,7 +115,6 @@ function AppContent() {
           {activeSection === 'courses' && <AdminCourses />}
           {activeSection === 'news' && <AdminNews />}
           {activeSection === 'stats' && <AdminStats />}
-          {activeSection === 'community' && <AdminCommunity />}
         </>
       )}
 

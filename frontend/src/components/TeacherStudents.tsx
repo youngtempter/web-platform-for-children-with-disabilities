@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Users, Trophy, Target } from 'lucide-react';
 import { Card } from './ui/card';
 import { useLanguage } from '../contexts/LanguageContext';
 import * as teacherApi from '../api/teacher';
@@ -51,14 +51,15 @@ export function TeacherStudents() {
           <p className="text-gray-600 dark:text-gray-400">{t('Пока нет учеников на ваших курсах', 'Сіздің курстарыңызда әлі оқушылар жоқ')}</p>
         </Card>
       ) : (
-        <Card className="p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <Card className="p-2 sm:p-4 bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4 pb-2">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-2 px-3 text-gray-600 dark:text-gray-400 text-xs font-medium">{t('Ученик', 'Оқушы')}</th>
                   <th className="text-left py-2 px-3 text-gray-600 dark:text-gray-400 text-xs font-medium">{t('Курс', 'Курс')}</th>
                   <th className="text-left py-2 px-3 text-gray-600 dark:text-gray-400 text-xs font-medium">{t('Прогресс', 'Прогресс')}</th>
+                  <th className="text-left py-2 px-3 text-gray-600 dark:text-gray-400 text-xs font-medium">{t('Тесты', 'Тесттер')}</th>
                   <th className="text-left py-2 px-3 text-gray-600 dark:text-gray-400 text-xs font-medium">{t('Дата записи', 'Жазылған күні')}</th>
                 </tr>
               </thead>
@@ -79,6 +80,28 @@ export function TeacherStudents() {
                         </div>
                         <span className="text-gray-800 dark:text-gray-100 text-xs">{s.progress.toFixed(0)}%</span>
                       </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      {s.quiz_stats ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1" title={t('Пройдено/Попыток', 'Өтілді/Әрекеттер')}>
+                            <Target className="w-3 h-3 text-blue-500" />
+                            <span className="text-xs text-gray-700 dark:text-gray-300">
+                              {s.quiz_stats.passed_count}/{s.quiz_stats.attempts_count}
+                            </span>
+                          </div>
+                          {s.quiz_stats.best_score !== null && (
+                            <div className="flex items-center gap-1" title={t('Лучший балл', 'Үздік балл')}>
+                              <Trophy className="w-3 h-3 text-yellow-500" />
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {s.quiz_stats.best_score}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                      )}
                     </td>
                     <td className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400">{formatDate(s.enrolled_at)}</td>
                   </tr>

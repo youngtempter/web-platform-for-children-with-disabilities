@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Award, BookOpen, Trophy, Star, Medal, Target, Clock, Edit2, Save, X, ArrowLeft } from 'lucide-react';
+import { Award, BookOpen, Trophy, Star, Target, CheckCircle, Edit2, Save, X, ArrowLeft, GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Label } from './ui/label';
 import { useLanguage } from '../contexts/LanguageContext';
 import * as meApi from '../api/me';
 import * as coursesApi from '../api/courses';
-import type { UserResponse, EnrollmentWithCourseResponse } from '../api/types';
+import type { UserResponse, EnrollmentWithCourseResponse, UserAchievementStats } from '../api/types';
 
 interface Achievement {
   id: string;
@@ -32,27 +33,52 @@ interface UserProfileProps {
 export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps) {
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [userData, setUserData] = useState<UserResponse | null>(null);
   const [myEnrollments, setMyEnrollments] = useState<EnrollmentWithCourseResponse[]>([]);
+  const [achievementStats, setAchievementStats] = useState<UserAchievementStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState('');
   const [editedFirstName, setEditedFirstName] = useState('');
   const [editedLastName, setEditedLastName] = useState('');
+  const [editedEmail, setEditedEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
-    Promise.all([meApi.getMe(), coursesApi.myCourses()])
-      .then(([user, enrollments]) => {
+    Promise.all([meApi.getMe(), coursesApi.myCourses(), meApi.getMyAchievements()])
+      .then(([user, enrollments, achievements]) => {
         setUserData(user);
         setEditedFirstName(user.first_name);
         setEditedLastName(user.last_name);
+        setEditedEmail(user.email);
         setMyEnrollments(enrollments);
+        setAchievementStats(achievements);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Ошибка'))
       .finally(() => setLoading(false));
   }, []);
 
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
   const displayName = userData ? [userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email : '';
+
+  const stats = achievementStats || {
+    completed_lessons: 0,
+    enrolled_courses: 0,
+    completed_courses: 0,
+    passed_quizzes: 0,
+    perfect_quizzes: 0,
+  };
 
   const achievements: Achievement[] = [
     {
@@ -62,94 +88,136 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
       titleKz: 'Бірінші жұлдыз',
       descriptionRu: 'Завершите первый урок',
       descriptionKz: 'Бірінші сабақты аяқтаңыз',
-      unlocked: true,
-      progress: 1,
+      unlocked: stats.completed_lessons >= 1,
+      progress: Math.min(stats.completed_lessons, 1),
       maxProgress: 1,
       color: 'bg-yellow-500',
     },
     {
       id: '2',
-      icon: Trophy,
-      titleRu: 'Чемпион недели',
-      titleKz: 'Апта чемпионы',
-      descriptionRu: 'Учитесь 5 дней подряд',
-      descriptionKz: '5 күн қатарынан оқыңыз',
-      unlocked: true,
-      progress: 5,
-      maxProgress: 5,
-      color: 'bg-purple-500',
-    },
-    {
-      id: '3',
-      icon: Medal,
-      titleRu: 'Знаток жестов',
-      titleKz: 'Ым тілін білгір',
-      descriptionRu: 'Выучите 50 жестов',
-      descriptionKz: '50 им үйреніңіз',
-      unlocked: false,
-      progress: 32,
-      maxProgress: 50,
-      color: 'bg-blue-500',
-    },
-    {
-      id: '4',
       icon: BookOpen,
       titleRu: 'Любитель знаний',
       titleKz: 'Білім сүйер',
-      descriptionRu: 'Завершите 5 курсов',
-      descriptionKz: '5 курсты аяқтаңыз',
-      unlocked: false,
-      progress: 3,
+      descriptionRu: 'Завершите 5 уроков',
+      descriptionKz: '5 сабақты аяқтаңыз',
+      unlocked: stats.completed_lessons >= 5,
+      progress: Math.min(stats.completed_lessons, 5),
       maxProgress: 5,
+      color: 'bg-blue-500',
+    },
+    {
+      id: '3',
+      icon: Target,
+      titleRu: 'Мастер уроков',
+      titleKz: 'Сабақ шебері',
+      descriptionRu: 'Завершите 10 уроков',
+      descriptionKz: '10 сабақты аяқтаңыз',
+      unlocked: stats.completed_lessons >= 10,
+      progress: Math.min(stats.completed_lessons, 10),
+      maxProgress: 10,
+      color: 'bg-purple-500',
+    },
+    {
+      id: '4',
+      icon: Trophy,
+      titleRu: 'Выпускник',
+      titleKz: 'Түлек',
+      descriptionRu: 'Завершите курс полностью',
+      descriptionKz: 'Курсты толық аяқтаңыз',
+      unlocked: stats.completed_courses >= 1,
+      progress: Math.min(stats.completed_courses, 1),
+      maxProgress: 1,
       color: 'bg-green-500',
     },
     {
       id: '5',
-      icon: Target,
-      titleRu: 'Мастер',
-      titleKz: 'Шебер',
-      descriptionRu: 'Наберите 2000 баллов',
-      descriptionKz: '2000 ұпай жинаңыз',
-      unlocked: false,
-      progress: 1850,
-      maxProgress: 2000,
-      color: 'bg-red-500',
+      icon: CheckCircle,
+      titleRu: 'Успешный тест',
+      titleKz: 'Сәтті тест',
+      descriptionRu: 'Пройдите первый тест',
+      descriptionKz: 'Бірінші тестті өтіңіз',
+      unlocked: stats.passed_quizzes >= 1,
+      progress: Math.min(stats.passed_quizzes, 1),
+      maxProgress: 1,
+      color: 'bg-orange-500',
     },
     {
       id: '6',
       icon: Award,
       titleRu: 'Отличник',
       titleKz: 'Үздік оқушы',
-      descriptionRu: 'Получите 100% в 3 уроках',
-      descriptionKz: '3 сабақта 100% алыңыз',
-      unlocked: true,
-      progress: 3,
-      maxProgress: 3,
-      color: 'bg-orange-500',
+      descriptionRu: 'Получите 100% в тесте',
+      descriptionKz: 'Тестте 100% алыңыз',
+      unlocked: stats.perfect_quizzes >= 1,
+      progress: Math.min(stats.perfect_quizzes, 1),
+      maxProgress: 1,
+      color: 'bg-red-500',
     },
   ];
 
   const handleSave = async () => {
     if (!userData) return;
     setSaving(true);
+    setError(null);
     try {
       const updated = await meApi.updateMe({
         first_name: editedFirstName,
         last_name: editedLastName,
+        email: editedEmail !== userData.email ? editedEmail : undefined,
       });
       setUserData(updated);
       setIsEditing(false);
-    } catch {
-      setError(t('Не удалось сохранить', 'Сақтау мүмкін болмады'));
+      showSuccess(t('Данные сохранены', 'Деректер сақталды'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Не удалось сохранить', 'Сақтау мүмкін болмады'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (!currentPassword || !newPassword) return;
+    if (newPassword !== confirmPassword) {
+      setError(t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді'));
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError(t('Пароль должен быть не менее 6 символов', 'Құпия сөз кемінде 6 таңба болуы керек'));
+      return;
+    }
+    setSavingPassword(true);
+    setError(null);
+    try {
+      await meApi.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordForm(false);
+      showSuccess(t('Пароль изменён', 'Құпия сөз өзгертілді'));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Неверный текущий пароль', 'Ағымдағы құпия сөз қате'));
+    } finally {
+      setSavingPassword(false);
     }
   };
 
   const handleCancel = () => {
     setEditedFirstName(userData?.first_name ?? '');
     setEditedLastName(userData?.last_name ?? '');
+    setEditedEmail(userData?.email ?? '');
     setIsEditing(false);
+    setError(null);
+  };
+
+  const handleCancelPassword = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordForm(false);
+    setError(null);
   };
 
   if (loading) {
@@ -167,9 +235,6 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
       </div>
     );
   }
-
-  const levelProgress = 50;
-  const pointsForNextLevel = 1000;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 py-8 transition-colors duration-300">
@@ -198,26 +263,121 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
 
             {/* Информация о пользователе */}
             <div className="flex-1 w-full">
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400 mb-3 bg-red-50 dark:bg-red-900/30 px-3 py-2 rounded-lg">{error}</p>
+              )}
+              {successMsg && (
+                <p className="text-sm text-green-600 dark:text-green-400 mb-3 bg-green-50 dark:bg-green-900/30 px-3 py-2 rounded-lg">{successMsg}</p>
+              )}
+
               {isEditing ? (
-                <div className="space-y-3">
-                  <Input
-                    value={editedFirstName}
-                    onChange={(e) => setEditedFirstName(e.target.value)}
-                    className="border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl text-lg"
-                    placeholder={t('Имя', 'Аты')}
-                  />
-                  <Input
-                    value={editedLastName}
-                    onChange={(e) => setEditedLastName(e.target.value)}
-                    className="border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl text-lg"
-                    placeholder={t('Фамилия', 'Тегі')}
-                  />
-                  <div className="flex gap-2">
+                <div className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Имя', 'Аты')}</Label>
+                      <Input
+                        value={editedFirstName}
+                        onChange={(e) => setEditedFirstName(e.target.value)}
+                        className="mt-1 border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl"
+                        placeholder={t('Имя', 'Аты')}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Фамилия', 'Тегі')}</Label>
+                      <Input
+                        value={editedLastName}
+                        onChange={(e) => setEditedLastName(e.target.value)}
+                        className="mt-1 border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl"
+                        placeholder={t('Фамилия', 'Тегі')}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      Email
+                    </Label>
+                    <Input
+                      type="email"
+                      value={editedEmail}
+                      onChange={(e) => setEditedEmail(e.target.value)}
+                      className="mt-1 border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-2">
                     <Button onClick={handleSave} disabled={saving} className="bg-green-500 hover:bg-green-600 rounded-xl">
                       <Save className="w-4 h-4 mr-2" />
                       {saving ? t('Сохранение...', 'Сақтау...') : t('Сохранить', 'Сақтау')}
                     </Button>
                     <Button onClick={handleCancel} variant="outline" className="rounded-xl dark:border-gray-600 dark:hover:bg-gray-700">
+                      <X className="w-4 h-4 mr-2" />
+                      {t('Отмена', 'Болдырмау')}
+                    </Button>
+                  </div>
+                </div>
+              ) : showPasswordForm ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    {t('Изменить пароль', 'Құпия сөзді өзгерту')}
+                  </h3>
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Текущий пароль', 'Ағымдағы құпия сөз')}</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Новый пароль', 'Жаңа құпия сөз')}</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl pr-10"
+                        placeholder={t('Минимум 6 символов', 'Кемінде 6 таңба')}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Подтвердите пароль', 'Құпия сөзді растаңыз')}</Label>
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="mt-1 border-2 border-purple-300 dark:border-purple-600 dark:bg-gray-700 dark:text-white rounded-xl"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button 
+                      onClick={handleSavePassword} 
+                      disabled={savingPassword || !currentPassword || !newPassword} 
+                      className="bg-purple-600 hover:bg-purple-700 rounded-xl"
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      {savingPassword ? t('Сохранение...', 'Сақтау...') : t('Изменить пароль', 'Құпия сөзді өзгерту')}
+                    </Button>
+                    <Button onClick={handleCancelPassword} variant="outline" className="rounded-xl dark:border-gray-600 dark:hover:bg-gray-700">
                       <X className="w-4 h-4 mr-2" />
                       {t('Отмена', 'Болдырмау')}
                     </Button>
@@ -232,13 +392,23 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
                       variant="ghost"
                       size="icon"
                       className="rounded-full hover:bg-purple-100 dark:hover:bg-purple-900"
+                      title={t('Редактировать профиль', 'Профильді өңдеу')}
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-gray-600 dark:text-gray-400 mb-3">
                     {userData?.email} • {t('Роль', 'Рөл')}: {userData?.role}
                   </p>
+                  <Button
+                    onClick={() => setShowPasswordForm(true)}
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl dark:border-gray-600 dark:hover:bg-gray-700 mb-4"
+                  >
+                    <Lock className="w-4 h-4 mr-2" />
+                    {t('Изменить пароль', 'Құпия сөзді өзгерту')}
+                  </Button>
 
                   {/* Статистика */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -246,6 +416,21 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
                       <BookOpen className="w-6 h-6 mx-auto mb-1 text-blue-600 dark:text-blue-400" />
                       <div className="text-blue-900 dark:text-blue-100">{myEnrollments.length}</div>
                       <div className="text-xs text-blue-700 dark:text-blue-300">{t('Мои курсы', 'Менің курстарым')}</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 p-3 rounded-2xl text-center border-2 border-green-300 dark:border-green-700">
+                      <Star className="w-6 h-6 mx-auto mb-1 text-green-600 dark:text-green-400" />
+                      <div className="text-green-900 dark:text-green-100">{stats.completed_lessons}</div>
+                      <div className="text-xs text-green-700 dark:text-green-300">{t('Уроков пройдено', 'Өтілген сабақтар')}</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900 dark:to-purple-800 p-3 rounded-2xl text-center border-2 border-purple-300 dark:border-purple-700">
+                      <CheckCircle className="w-6 h-6 mx-auto mb-1 text-purple-600 dark:text-purple-400" />
+                      <div className="text-purple-900 dark:text-purple-100">{stats.passed_quizzes}</div>
+                      <div className="text-xs text-purple-700 dark:text-purple-300">{t('Тестов сдано', 'Тапсырылған тест')}</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900 dark:to-orange-800 p-3 rounded-2xl text-center border-2 border-orange-300 dark:border-orange-700">
+                      <Award className="w-6 h-6 mx-auto mb-1 text-orange-600 dark:text-orange-400" />
+                      <div className="text-orange-900 dark:text-orange-100">{achievements.filter(a => a.unlocked).length}</div>
+                      <div className="text-xs text-orange-700 dark:text-orange-300">{t('Достижений', 'Жетістіктер')}</div>
                     </div>
                   </div>
                 </>
@@ -317,37 +502,91 @@ export function UserProfile({ setActiveSection, onOpenLesson }: UserProfileProps
             {myEnrollments.length === 0 ? (
               <p className="text-gray-600 dark:text-gray-400">{t('Вы ещё не записаны на курсы', 'Сіз әзірше курстарға жазылмағансыз')}</p>
             ) : (
-              myEnrollments.map((enr) => (
-                <div
-                  key={enr.id}
-                  className="p-5 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-600 rounded-2xl border-2 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-all hover:shadow-lg"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-gray-900 dark:text-gray-100">{enr.course_title}</h4>
-                    <Badge className="bg-green-500 text-white border-0">
-                      {Math.round(enr.progress * 100)}%
-                    </Badge>
-                  </div>
+              myEnrollments.map((enr) => {
+                const isCompleted = enr.progress >= 100;
+                return (
+                  <div
+                    key={enr.id}
+                    className={`p-5 rounded-2xl border-2 transition-all hover:shadow-lg ${
+                      isCompleted
+                        ? 'bg-gradient-to-r from-amber-50 to-yellow-100 dark:from-amber-900/50 dark:to-yellow-900/40 border-amber-400 dark:border-amber-500'
+                        : 'bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-600 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500'
+                    }`}
+                  >
+                    {/* Certificate banner for completed courses */}
+                    {isCompleted && (
+                      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-amber-400 dark:border-amber-500">
+                        <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                          <GraduationCap className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                            {t('Курс завершен!', 'Курс аяқталды!')}
+                          </p>
+                          <p className="text-xs text-amber-700 dark:text-amber-400">
+                            {t('Поздравляем с успешным завершением', 'Сәтті аяқтаумен құттықтаймыз')}
+                          </p>
+                        </div>
+                        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg font-medium">
+                          <Trophy className="w-3 h-3 mr-1" />
+                          {t('Сертификат', 'Сертификат')}
+                        </Badge>
+                      </div>
+                    )}
 
-                  <div className="mb-3">
-                    <Progress value={enr.progress * 100} className="h-3 rounded-full" />
-                  </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className={isCompleted ? 'text-amber-900 dark:text-amber-100 font-semibold' : 'text-gray-900 dark:text-gray-100'}>{enr.course_title}</h4>
+                      <Badge className={isCompleted ? 'bg-green-600 text-white border-0 shadow-sm font-semibold' : 'bg-blue-500 text-white border-0'}>
+                        {Math.round(enr.progress)}%
+                      </Badge>
+                    </div>
 
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>{enr.course_level}</span>
-                    <Button
-                      size="sm"
-                      className="bg-purple-500 hover:bg-purple-600 rounded-xl"
-                      onClick={() => {
-                        onOpenLesson?.(enr.course_id);
-                        setActiveSection('lesson');
-                      }}
-                    >
-                      {t('Продолжить', 'Жалғастыру')}
-                    </Button>
+                    <div className="mb-3">
+                      <Progress 
+                        value={enr.progress} 
+                        className={`h-3 rounded-full ${
+                          isCompleted 
+                            ? '[&>div]:bg-green-500 bg-amber-200 dark:bg-amber-800/60' 
+                            : ''
+                        }`} 
+                      />
+                    </div>
+
+                    <div className={`flex items-center justify-between text-sm ${isCompleted ? 'text-amber-800 dark:text-amber-300' : 'text-gray-600 dark:text-gray-400'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{enr.course_level}</span>
+                        {isCompleted && (
+                          <span className="flex items-center gap-1 text-green-700 dark:text-green-400 font-semibold">
+                            <CheckCircle className="w-4 h-4" />
+                            {t('Пройден', 'Өтілді')}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        className={`rounded-xl shadow-md ${
+                          isCompleted 
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium' 
+                            : 'bg-purple-500 hover:bg-purple-600'
+                        }`}
+                        onClick={() => {
+                          onOpenLesson?.(enr.course_id);
+                          setActiveSection('lesson');
+                        }}
+                      >
+                        {isCompleted ? (
+                          <>
+                            <BookOpen className="w-4 h-4 mr-1.5" />
+                            {t('Просмотреть', 'Қарау')}
+                          </>
+                        ) : (
+                          t('Продолжить', 'Жалғастыру')
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </Card>

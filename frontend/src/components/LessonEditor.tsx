@@ -90,12 +90,12 @@ export function LessonEditor({ lessonId, onClose, onSaved }: LessonEditorProps) 
   }
 
   return (
-    <Card className="p-6 bg-white dark:bg-gray-800 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">
+    <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base sm:text-lg font-medium text-gray-800 dark:text-gray-100">
           {t('Редактирование урока', 'Сабақты өңдеу')}
         </h3>
-        <Button variant="ghost" size="sm" onClick={onClose}>
+        <Button variant="ghost" size="sm" onClick={onClose} className="shrink-0">
           <X className="w-4 h-4" />
         </Button>
       </div>
@@ -157,19 +157,19 @@ export function LessonEditor({ lessonId, onClose, onSaved }: LessonEditorProps) 
               />
             </div>
 
-            <div className="flex items-center gap-4">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+              <div className="flex-1 sm:flex-none">
                 <Label className="text-xs">{t('Длительность (сек)', 'Ұзақтығы (сек)')}</Label>
                 <Input
                   type="number"
                   value={durationSeconds}
                   onChange={(e) => setDurationSeconds(e.target.value ? Number(e.target.value) : '')}
                   placeholder="300"
-                  className="mt-1 w-24"
+                  className="mt-1 w-full sm:w-24"
                 />
               </div>
 
-              <label className="flex items-center gap-2 mt-5">
+              <label className="flex items-center gap-2 pb-1">
                 <input
                   type="checkbox"
                   checked={hasSignLanguage}
@@ -186,12 +186,12 @@ export function LessonEditor({ lessonId, onClose, onSaved }: LessonEditorProps) 
         </div>
 
         {/* Save button */}
-        <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto">
             <Save className="w-4 h-4 mr-2" />
             {saving ? t('Сохранение...', 'Сақталуда...') : t('Сохранить урок', 'Сабақты сақтау')}
           </Button>
-          <Button variant="outline" onClick={() => setShowQuizEditor(!showQuizEditor)}>
+          <Button variant="outline" onClick={() => setShowQuizEditor(!showQuizEditor)} className="w-full sm:w-auto">
             {showQuizEditor ? t('Скрыть квиз', 'Тестті жасыру') : t('Редактировать квиз', 'Тестті өңдеу')}
           </Button>
         </div>

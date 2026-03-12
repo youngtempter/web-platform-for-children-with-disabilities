@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Trophy, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Trophy, RefreshCw, Clock, ChevronDown, ChevronUp, Award } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
+import { Badge } from './ui/badge';
 import { useLanguage } from '../contexts/LanguageContext';
 import * as quizzesApi from '../api/quizzes';
-import type { QuizResponseStudent, QuizResultResponse } from '../api/types';
+import type { QuizResponseStudent, QuizResultResponse, QuizAttemptResponse } from '../api/types';
 
 interface CheckedQuestion {
   isCorrect: boolean;
@@ -31,6 +32,11 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
   const [checkedQuestions, setCheckedQuestions] = useState<Record<number, CheckedQuestion>>({});
   const [checking, setChecking] = useState(false);
 
+  // Attempts history state
+  const [attempts, setAttempts] = useState<QuizAttemptResponse[]>([]);
+  const [attemptsExpanded, setAttemptsExpanded] = useState(false);
+  const [loadingAttempts, setLoadingAttempts] = useState(false);
+
   useEffect(() => {
     loadQuiz();
   }, [lessonId]);
@@ -45,6 +51,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
     try {
       const data = await quizzesApi.getQuiz(lessonId);
       setQuiz(data as QuizResponseStudent);
+      loadAttempts((data as QuizResponseStudent).id);
     } catch (err: any) {
       if (err?.message?.includes('404') || err?.message?.includes('not found')) {
         setQuiz(null);
@@ -54,6 +61,32 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAttempts = async (quizId: number) => {
+    setLoadingAttempts(true);
+    try {
+      const data = await quizzesApi.getMyAttempts(quizId);
+      setAttempts(data);
+    } catch {
+      setAttempts([]);
+    } finally {
+      setLoadingAttempts(false);
+    }
+  };
+
+  const bestAttempt = attempts.length > 0
+    ? attempts.reduce((best, current) => (current.score > best.score ? current : best), attempts[0])
+    : null;
+
+  const formatAttemptDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(language === 'kz' ? 'kk-KZ' : 'ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const handleSelectAnswer = (questionId: number, answerId: number) => {
@@ -95,6 +128,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
       const res = await quizzesApi.submitQuiz(quiz.id, selectedAnswers);
       setResult(res);
       onComplete?.(res.passed, res.score);
+      loadAttempts(quiz.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отправки');
     } finally {
@@ -135,7 +169,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
   // Show result
   if (result) {
     return (
-      <Card className="p-6 bg-white dark:bg-gray-800">
+      <Card className="p-6 bg-white dark:bg-gray-800 space-y-6">
         <div className="text-center space-y-4">
           {result.passed ? (
             <>
@@ -169,11 +203,87 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
             {t('Для прохождения нужно:', 'Өту үшін қажет:')} {quiz.passing_score}%
           </p>
 
+          {bestAttempt && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+              <Award className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+              <span className="text-sm text-yellow-700 dark:text-yellow-400">
+                {t('Лучший результат:', 'Үздік нәтиже:')} {bestAttempt.score}%
+              </span>
+            </div>
+          )}
+
           <Button onClick={handleRetry} variant="outline" className="mt-4">
             <RefreshCw className="w-4 h-4 mr-2" />
             {t('Пройти заново', 'Қайта өту')}
           </Button>
         </div>
+
+        {/* Attempts History Section */}
+        {attempts.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <button
+              onClick={() => setAttemptsExpanded(!attemptsExpanded)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('Мои попытки', 'Менің талпыныстарым')} ({attempts.length})
+              </span>
+              {attemptsExpanded ? (
+                <ChevronUp className="w-4 h-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              )}
+            </button>
+
+            {attemptsExpanded && (
+              <div className="mt-3 space-y-2">
+                {attempts
+                  .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+                  .map((attempt, index) => (
+                    <div
+                      key={attempt.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        attempt.passed
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                          : 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                          attempt.passed
+                            ? 'bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300'
+                            : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                        }`}>
+                          {attempts.length - index}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                              {attempt.score}%
+                            </span>
+                            {attempt.id === bestAttempt?.id && (
+                              <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs px-1.5 py-0">
+                                {t('Лучший', 'Үздік')}
+                              </Badge>
+                            )}
+                            {attempt.passed ? (
+                              <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3.5 h-3.5 text-red-400" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatAttemptDate(attempt.started_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     );
   }

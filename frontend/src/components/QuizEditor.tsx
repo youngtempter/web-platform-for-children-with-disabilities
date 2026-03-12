@@ -268,9 +268,9 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
   }
 
   return (
-    <Card className="p-6 bg-white dark:bg-gray-800 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100">
+    <Card className="p-4 sm:p-6 bg-white dark:bg-gray-800 space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base sm:text-lg font-medium text-gray-800 dark:text-gray-100">
           {t('Редактор квиза', 'Тест редакторы')}
         </h3>
         {onClose && (
@@ -290,15 +290,15 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
       {/* Questions list */}
       <div className="space-y-4">
         {quiz.questions.map((question, qIndex) => (
-          <Card key={question.id} className="p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600">
+          <Card key={question.id} className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-300 dark:border-gray-600">
             <div className="flex items-start gap-2 mb-3">
-              <span className="text-purple-600 dark:text-purple-400 font-medium">
+              <span className="text-purple-600 dark:text-purple-400 font-medium shrink-0">
                 {qIndex + 1}.
               </span>
-              <div className="flex-1">
-                <p className="text-gray-800 dark:text-gray-100">{question.text_ru}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-gray-800 dark:text-gray-100 text-sm sm:text-base">{question.text_ru}</p>
                 {question.text_kz && (
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">{question.text_kz}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">{question.text_kz}</p>
                 )}
               </div>
               <Button
@@ -306,14 +306,14 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
                 size="sm"
                 onClick={() => handleDeleteQuestion(question.id)}
                 disabled={saving}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
 
             {/* Answers */}
-            <div className="ml-6 space-y-2">
+            <div className="ml-2 sm:ml-6 space-y-2">
               {question.answers.map((answer) => (
                 <div
                   key={answer.id}
@@ -443,36 +443,41 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
           <div className="space-y-2">
             <Label className="text-xs">{t('Варианты ответа', 'Жауап нұсқалары')}</Label>
             {newAnswerOptions.map((opt, idx) => (
-              <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => handleAnswerOptionChange(idx, 'is_correct', !opt.is_correct)}
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    opt.is_correct
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-gray-300 dark:border-gray-500'
-                  }`}
-                >
-                  {opt.is_correct && <Check className="w-3 h-3" />}
-                </button>
-                <Input
-                  value={opt.text_ru}
-                  onChange={(e) => handleAnswerOptionChange(idx, 'text_ru', e.target.value)}
-                  placeholder={t('Ответ (рус)', 'Жауап (орыс)')}
-                  className="flex-1 h-8 text-sm"
-                />
-                <Input
-                  value={opt.text_kz}
-                  onChange={(e) => handleAnswerOptionChange(idx, 'text_kz', e.target.value)}
-                  placeholder={t('Ответ (каз)', 'Жауап (қаз)')}
-                  className="flex-1 h-8 text-sm"
-                />
+              <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAnswerOptionChange(idx, 'is_correct', !opt.is_correct)}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                      opt.is_correct
+                        ? 'border-green-500 bg-green-500 text-white'
+                        : 'border-gray-300 dark:border-gray-500'
+                    }`}
+                  >
+                    {opt.is_correct && <Check className="w-3 h-3" />}
+                  </button>
+                  <span className="text-xs text-gray-500 sm:hidden">{idx + 1}.</span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 flex-1">
+                  <Input
+                    value={opt.text_ru}
+                    onChange={(e) => handleAnswerOptionChange(idx, 'text_ru', e.target.value)}
+                    placeholder={t('Ответ (рус)', 'Жауап (орыс)')}
+                    className="flex-1 h-8 text-sm"
+                  />
+                  <Input
+                    value={opt.text_kz}
+                    onChange={(e) => handleAnswerOptionChange(idx, 'text_kz', e.target.value)}
+                    placeholder={t('Ответ (каз)', 'Жауап (қаз)')}
+                    className="flex-1 h-8 text-sm"
+                  />
+                </div>
                 {newAnswerOptions.length > 2 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleRemoveAnswerOption(idx)}
-                    className="text-red-500 hover:text-red-600 p-1 h-auto"
+                    className="text-red-500 hover:text-red-600 p-1 h-auto self-end sm:self-center"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -490,11 +495,11 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
             </Button>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={handleAddQuestion}
               disabled={saving || !newQuestionRu.trim()}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
             >
               {t('Добавить вопрос', 'Сұрақ қосу')}
             </Button>
@@ -509,6 +514,7 @@ export function QuizEditor({ lessonId, onClose }: QuizEditorProps) {
                   { text_ru: '', text_kz: '', is_correct: false },
                 ]);
               }}
+              className="w-full sm:w-auto"
             >
               {t('Отмена', 'Болдырмау')}
             </Button>

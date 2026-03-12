@@ -1,4 +1,4 @@
-import { Home, BookOpen, Video, Users, Languages, UserCircle, User, Sun, Moon, LogOut, LayoutDashboard, Shield, BarChart3, MessageCircle, Newspaper } from 'lucide-react';
+import { Home, BookOpen, Video, Users, Languages, UserCircle, User, Sun, Moon, LogOut, LayoutDashboard, BarChart3, MessageCircle, Newspaper } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,7 +33,6 @@ const adminNav = [
   { id: 'courses', icon: BookOpen, labelRu: 'Курсы', labelKz: 'Курстар' },
   { id: 'news', icon: Newspaper, labelRu: 'Новости', labelKz: 'Жаңалықтар' },
   { id: 'stats', icon: BarChart3, labelRu: 'Статистика', labelKz: 'Статистика' },
-  { id: 'community', icon: Shield, labelRu: 'Модерация', labelKz: 'Модеция' },
 ];
 
 export function Header({ activeSection, setActiveSection, onLogout, userRole }: HeaderProps) {
