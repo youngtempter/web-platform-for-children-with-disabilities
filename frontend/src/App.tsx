@@ -7,7 +7,6 @@ import { InteractiveLessonDemo } from './components/InteractiveLessonDemo';
 import { UserProfile } from './components/UserProfile';
 import { CommunityPage } from './components/CommunityPage';
 import { AuthPage } from './components/AuthPage';
-import { TeacherDashboard } from './components/TeacherDashboard';
 import { TeacherCourses } from './components/TeacherCourses';
 import { TeacherStudents } from './components/TeacherStudents';
 import { TeacherProfile } from './components/TeacherProfile';
@@ -16,6 +15,9 @@ import { AdminUsers } from './components/AdminUsers';
 import { AdminCourses } from './components/AdminCourses';
 import { AdminStats } from './components/AdminStats';
 import { AdminCommunity } from './components/AdminCommunity';
+import { AdminNews } from './components/AdminNews';
+import { TeacherHome } from './components/TeacherHome';
+import { NewsBlock } from './components/NewsBlock';
 import { Footer } from './components/Footer';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -24,7 +26,7 @@ import type { UserRole } from './api/types';
 
 const defaultSectionByRole: Record<UserRole, string> = {
   student: 'home',
-  teacher: 'dashboard',
+  teacher: 'home',
   admin: 'dashboard',
 };
 
@@ -76,6 +78,9 @@ function AppContent() {
           {activeSection === 'home' && (
             <>
               <Hero setActiveSection={setActiveSection} />
+              <section className="container mx-auto px-4 py-8">
+                <NewsBlock limit={3} />
+              </section>
               <FeaturesSection />
               <CoursesSection setActiveSection={setActiveSection} onOpenLesson={openLesson} />
             </>
@@ -96,7 +101,7 @@ function AppContent() {
 
       {userRole === 'teacher' && (
         <>
-          {activeSection === 'dashboard' && <TeacherDashboard />}
+          {activeSection === 'home' && <TeacherHome setActiveSection={setActiveSection} />}
           {activeSection === 'courses' && <TeacherCourses />}
           {activeSection === 'students' && <TeacherStudents />}
           {activeSection === 'profile' && <TeacherProfile setActiveSection={setActiveSection} />}
@@ -109,6 +114,7 @@ function AppContent() {
           {activeSection === 'dashboard' && <AdminDashboard />}
           {activeSection === 'users' && <AdminUsers />}
           {activeSection === 'courses' && <AdminCourses />}
+          {activeSection === 'news' && <AdminNews />}
           {activeSection === 'stats' && <AdminStats />}
           {activeSection === 'community' && <AdminCommunity />}
         </>

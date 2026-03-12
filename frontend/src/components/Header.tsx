@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { Home, BookOpen, Video, Users, Settings, Languages, UserCircle, User, Sun, Moon, LogOut, LayoutDashboard, Shield, BarChart3, MessageCircle } from 'lucide-react';
+import { Home, BookOpen, Video, Users, Languages, UserCircle, User, Sun, Moon, LogOut, LayoutDashboard, Shield, BarChart3, MessageCircle, Newspaper } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import type { UserRole } from './AuthPage';
-import { AccountSettingsModal } from './AccountSettingsModal';
 
 interface HeaderProps {
   activeSection: string;
@@ -22,7 +20,7 @@ const studentNav = [
 ];
 
 const teacherNav = [
-  { id: 'dashboard', icon: LayoutDashboard, labelRu: 'Панель', labelKz: 'Панель' },
+  { id: 'home', icon: Home, labelRu: 'Главная', labelKz: 'Басты бет' },
   { id: 'courses', icon: BookOpen, labelRu: 'Мои курсы', labelKz: 'Менің курстарым' },
   { id: 'students', icon: Users, labelRu: 'Ученики', labelKz: 'Оқушылар' },
   { id: 'profile', icon: User, labelRu: 'Профиль', labelKz: 'Профиль' },
@@ -33,6 +31,7 @@ const adminNav = [
   { id: 'dashboard', icon: LayoutDashboard, labelRu: 'Панель', labelKz: 'Панель' },
   { id: 'users', icon: Users, labelRu: 'Пользователи', labelKz: 'Пайдаланушылар' },
   { id: 'courses', icon: BookOpen, labelRu: 'Курсы', labelKz: 'Курстар' },
+  { id: 'news', icon: Newspaper, labelRu: 'Новости', labelKz: 'Жаңалықтар' },
   { id: 'stats', icon: BarChart3, labelRu: 'Статистика', labelKz: 'Статистика' },
   { id: 'community', icon: Shield, labelRu: 'Модерация', labelKz: 'Модеция' },
 ];
@@ -40,10 +39,8 @@ const adminNav = [
 export function Header({ activeSection, setActiveSection, onLogout, userRole }: HeaderProps) {
   const { language, setLanguage, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const navItems = userRole === 'student' ? studentNav : userRole === 'teacher' ? teacherNav : adminNav;
-  const showSettings = userRole === 'student' || userRole === 'teacher';
 
   const toggleLanguage = () => {
     setLanguage(language === 'ru' ? 'kz' : 'ru');
@@ -89,7 +86,7 @@ export function Header({ activeSection, setActiveSection, onLogout, userRole }: 
             })}
           </nav>
 
-          {/* Переключатель языка, темы и настройки */}
+          {/* Переключатель языка и темы */}
           <div className="flex items-center gap-2">
             <Button
               onClick={toggleTheme}
@@ -112,18 +109,6 @@ export function Header({ activeSection, setActiveSection, onLogout, userRole }: 
                 {language.toUpperCase()}
               </span>
             </Button>
-            {showSettings && (
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full w-12 h-12 dark:border-gray-600 dark:hover:bg-gray-700"
-                title={t('Настройки', 'Параметрлер')}
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Settings className="w-6 h-6" />
-              </Button>
-            )}
-            <AccountSettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
             {onLogout && (
               <Button
                 onClick={onLogout}

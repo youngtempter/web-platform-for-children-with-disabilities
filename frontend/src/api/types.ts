@@ -195,3 +195,43 @@ export interface EnrollmentWithCourseResponse extends EnrollmentResponse {
   course_title: string;
   course_level: string;
 }
+
+// News types
+export interface NewsResponse {
+  id: number;
+  title_ru: string;
+  title_kz: string;
+  content_ru: string;
+  content_kz: string;
+  video_url: string | null;
+  image_url: string | null;
+  is_published: boolean;
+  author_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewsCreate {
+  title_ru: string;
+  title_kz?: string;
+  content_ru: string;
+  content_kz?: string;
+  video_url?: string | null;
+  image_url?: string | null;
+  is_published?: boolean;
+}
+
+export interface NewsUpdate {
+  title_ru?: string;
+  title_kz?: string;
+  content_ru?: string;
+  content_kz?: string;
+  video_url?: string | null;
+  image_url?: string | null;
+  is_published?: boolean;
+}
+
+export interface NewsListResponse {
+  news: NewsResponse[];
+  total: number;
+}

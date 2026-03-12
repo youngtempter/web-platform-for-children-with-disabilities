@@ -290,7 +290,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t dark:border-gray-700">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <Button
           variant="outline"
           onClick={() => setCurrentQuestion((prev) => Math.max(0, prev - 1))}
@@ -305,7 +305,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
             <Button
               onClick={handleCheckAnswer}
               disabled={!hasSelectedAnswer || checking}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-purple-400 disabled:text-white/80"
             >
               {checking ? t('Проверка...', 'Тексерілуде...') : t('Проверить', 'Тексеру')}
             </Button>
@@ -317,7 +317,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
               {!isLastQuestion ? (
                 <Button
                   onClick={() => setCurrentQuestion((prev) => prev + 1)}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
                   {t('Далее', 'Келесі')}
                 </Button>
@@ -325,7 +325,7 @@ export function QuizPlayer({ lessonId, onComplete }: QuizPlayerProps) {
                 <Button
                   onClick={handleSubmit}
                   disabled={!checkedAll || submitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-500 hover:bg-green-600 text-white disabled:bg-green-300 disabled:text-white/80"
                 >
                   {submitting ? t('Отправка...', 'Жіберілуде...') : t('Завершить тест', 'Тестті аяқтау')}
                 </Button>
