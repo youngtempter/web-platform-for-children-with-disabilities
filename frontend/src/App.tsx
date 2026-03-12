@@ -40,6 +40,16 @@ function AppContent() {
     setActiveSection('lesson');
   };
 
+  // Wrapper to handle navigation - resets lesson state when going to demo lesson via nav
+  const handleSetActiveSection = (section: string) => {
+    // When clicking "Урок (демо)" in navigation, reset course/lesson IDs to enter demo mode
+    if (section === 'lesson') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+    }
+    setActiveSection(section);
+  };
+
   const handleLogout = () => {
     logout();
     setActiveSection('home');
@@ -59,7 +69,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
-      <Header activeSection={activeSection} setActiveSection={setActiveSection} onLogout={handleLogout} userRole={userRole} />
+      <Header activeSection={activeSection} setActiveSection={handleSetActiveSection} onLogout={handleLogout} userRole={userRole} />
 
       {userRole === 'student' && (
         <>
