@@ -1,9 +1,44 @@
+import re
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, field_validator
 
 Role = Literal["student", "teacher", "admin"]
+
+
+def validate_password_strength(password: str) -> str:
+    """
+    Validate password strength with the following requirements:
+    - At least 6 characters
+    - At least 1 uppercase letter
+    - At least 1 lowercase letter
+    - At least 1 digit
+    - At least 1 special character (recommended)
+    
+    Returns the password if valid, raises ValueError otherwise.
+    """
+    errors = []
+    
+    if len(password) < 6:
+        errors.append("at least 6 characters")
+    
+    if not re.search(r'[A-Z]', password):
+        errors.append("at least 1 uppercase letter")
+    
+    if not re.search(r'[a-z]', password):
+        errors.append("at least 1 lowercase letter")
+    
+    if not re.search(r'\d', password):
+        errors.append("at least 1 digit")
+    
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;\'`~]', password):
+        errors.append("at least 1 special character (!@#$%^&* etc.)")
+    
+    if errors:
+        raise ValueError(f"Password must contain: {', '.join(errors)}")
+    
+    return password
 
 
 class UserCreate(BaseModel):
@@ -18,9 +53,7 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
-        return v
+        return validate_password_strength(v)
 
 
 class UserLogin(BaseModel):
@@ -47,9 +80,7 @@ class PasswordChange(BaseModel):
     @field_validator("new_password")
     @classmethod
     def validate_new_password(cls, v: str) -> str:
-        if len(v) < 6:
-            raise ValueError("Password must be at least 6 characters")
-        return v
+        return validate_password_strength(v)
 
 
 class UserResponse(BaseModel):

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle, GraduationCap, School } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, CheckCircle, GraduationCap, School, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
@@ -13,6 +13,32 @@ export type { UserRole };
 
 type AuthView = 'login' | 'register' | 'reset' | 'verify-reset' | 'success';
 type RegisterRole = 'student' | 'teacher';
+
+interface PasswordValidation {
+  isValid: boolean;
+  hasMinLength: boolean;
+  hasUppercase: boolean;
+  hasLowercase: boolean;
+  hasNumber: boolean;
+  hasSpecial: boolean;
+}
+
+function validatePassword(password: string): PasswordValidation {
+  const hasMinLength = password.length >= 6;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'`~]/.test(password);
+  
+  return {
+    isValid: hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial,
+    hasMinLength,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecial,
+  };
+}
 
 export function AuthPage() {
   const { t } = useLanguage();
@@ -29,6 +55,8 @@ export function AuthPage() {
     name: '',
   });
 
+  const passwordValidation = useMemo(() => validatePassword(formData.password), [formData.password]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
@@ -44,6 +72,13 @@ export function AuthPage() {
     }
 
     if (currentView === 'register') {
+      if (!passwordValidation.isValid) {
+        setError(t(
+          'Пароль должен содержать минимум 6 символов, заглавную и строчную букву, цифру и спецсимвол',
+          'Құпия сөз кемінде 6 таңба, бас және кіші әріп, сан және арнайы таңба болуы керек'
+        ));
+        return;
+      }
       if (formData.password !== formData.confirmPassword) {
         setError(t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді'));
         return;
@@ -302,6 +337,36 @@ export function AuthPage() {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                  {/* Password requirements indicator */}
+                  {formData.password && (
+                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        {t('Требования к паролю:', 'Құпия сөз талаптары:')}
+                      </p>
+                      <div className="grid grid-cols-1 gap-1 text-xs">
+                        <div className={`flex items-center gap-1.5 ${passwordValidation.hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {passwordValidation.hasMinLength ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {t('Минимум 6 символов', 'Кемінде 6 таңба')}
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${passwordValidation.hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {passwordValidation.hasUppercase ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {t('Заглавная буква (A-Z)', 'Бас әріп (A-Z)')}
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${passwordValidation.hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {passwordValidation.hasLowercase ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {t('Строчная буква (a-z)', 'Кіші әріп (a-z)')}
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${passwordValidation.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {passwordValidation.hasNumber ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {t('Цифра (0-9)', 'Сан (0-9)')}
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${passwordValidation.hasSpecial ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {passwordValidation.hasSpecial ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                          {t('Спецсимвол (!@#$%...)', 'Арнайы таңба (!@#$%...)')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -315,11 +380,21 @@ export function AuthPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-2 dark:bg-gray-700 dark:border-gray-600"
+                      className={`pl-10 h-12 rounded-xl border-2 dark:bg-gray-700 dark:border-gray-600 ${
+                        formData.confirmPassword && formData.password !== formData.confirmPassword
+                          ? 'border-red-300 dark:border-red-600'
+                          : ''
+                      }`}
                       placeholder="••••••••"
                       required
                     />
                   </div>
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді')}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

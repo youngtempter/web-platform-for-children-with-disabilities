@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { UserCircle, BookOpen, Users, Edit2, Save, X, Mail, Shield, ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { UserCircle, BookOpen, Users, Edit2, Save, X, Mail, Shield, ArrowLeft, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card } from './ui/card';
@@ -9,6 +9,32 @@ import { useLanguage } from '../contexts/LanguageContext';
 import * as meApi from '../api/me';
 import * as teacherApi from '../api/teacher';
 import type { UserResponse, TeacherStats } from '../api/types';
+
+interface PasswordValidation {
+  isValid: boolean;
+  hasMinLength: boolean;
+  hasUppercase: boolean;
+  hasLowercase: boolean;
+  hasNumber: boolean;
+  hasSpecial: boolean;
+}
+
+function validatePassword(password: string): PasswordValidation {
+  const hasMinLength = password.length >= 6;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'`~]/.test(password);
+  
+  return {
+    isValid: hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecial,
+    hasMinLength,
+    hasUppercase,
+    hasLowercase,
+    hasNumber,
+    hasSpecial,
+  };
+}
 
 interface TeacherProfileProps {
   setActiveSection?: (section: string) => void;
@@ -56,6 +82,8 @@ export function TeacherProfile({ setActiveSection }: TeacherProfileProps) {
     ? [userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email
     : '';
 
+  const passwordValidation = useMemo(() => validatePassword(newPassword), [newPassword]);
+
   const handleSave = async () => {
     if (!userData) return;
     setSaving(true);
@@ -78,12 +106,15 @@ export function TeacherProfile({ setActiveSection }: TeacherProfileProps) {
 
   const handleSavePassword = async () => {
     if (!currentPassword || !newPassword) return;
-    if (newPassword !== confirmPassword) {
-      setError(t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді'));
+    if (!passwordValidation.isValid) {
+      setError(t(
+        'Пароль должен содержать минимум 6 символов, заглавную и строчную букву, цифру и спецсимвол',
+        'Құпия сөз кемінде 6 таңба, бас және кіші әріп, сан және арнайы таңба болуы керек'
+      ));
       return;
     }
-    if (newPassword.length < 6) {
-      setError(t('Пароль должен быть не менее 6 символов', 'Құпия сөз кемінде 6 таңба болуы керек'));
+    if (newPassword !== confirmPassword) {
+      setError(t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді'));
       return;
     }
     setSavingPassword(true);
@@ -283,6 +314,30 @@ export function TeacherProfile({ setActiveSection }: TeacherProfileProps) {
                           {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                      {newPassword && (
+                        <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-1 text-xs">
+                          <div className={`flex items-center gap-1 ${passwordValidation.hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                            {passwordValidation.hasMinLength ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {t('Мин. 6 символов', 'Кем. 6 таңба')}
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordValidation.hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                            {passwordValidation.hasUppercase ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {t('Заглавная (A-Z)', 'Бас әріп (A-Z)')}
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordValidation.hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                            {passwordValidation.hasLowercase ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {t('Строчная (a-z)', 'Кіші әріп (a-z)')}
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                            {passwordValidation.hasNumber ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {t('Цифра (0-9)', 'Сан (0-9)')}
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordValidation.hasSpecial ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                            {passwordValidation.hasSpecial ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {t('Спецсимвол (!@#...)', 'Арнайы таңба (!@#...)')}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-gray-600 dark:text-gray-400">{t('Подтвердите пароль', 'Құпия сөзді растаңыз')}</Label>
@@ -290,8 +345,18 @@ export function TeacherProfile({ setActiveSection }: TeacherProfileProps) {
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="mt-1 dark:bg-gray-700 dark:border-gray-600"
+                        className={`mt-1 dark:bg-gray-700 ${
+                          confirmPassword && newPassword !== confirmPassword
+                            ? 'border-red-300 dark:border-red-600'
+                            : 'dark:border-gray-600'
+                        }`}
                       />
+                      {confirmPassword && newPassword !== confirmPassword && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {t('Пароли не совпадают', 'Құпия сөздер сәйкес келмейді')}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2">
                       <Button 
