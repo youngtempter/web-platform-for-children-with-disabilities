@@ -3,11 +3,21 @@ from sqlmodel import Session, create_engine, SQLModel
 
 from app.core.config import settings
 
-# Import models so SQLModel discovers them for table creation
-from app.models.user import User  # noqa: F401
-from app.models.course import Course  # noqa: F401
-from app.models.lesson import Lesson  # noqa: F401
-from app.models.enrollment import Enrollment  # noqa: F401
+# Import all models so SQLModel discovers them for table creation (SQLite)
+# Alembic остается основным механизмом миграций для PostgreSQL.
+from app.models import (  # noqa: F401
+    User,
+    Course,
+    Lesson,
+    Enrollment,
+    Quiz,
+    Question,
+    Answer,
+    QuizAttempt,
+    LessonProgress,
+    SuccessPost,
+    SuccessPostLike,
+)
 
 _connect_args = {}
 if "sqlite" in settings.database_url:

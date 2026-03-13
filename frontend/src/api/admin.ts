@@ -26,7 +26,9 @@ export async function getUser(userId: number): Promise<UserResponse> {
 }
 
 export async function updateUser(userId: number, body: UserUpdate): Promise<UserResponse> {
-  return apiRequest<UserResponse>(`/admin/users/${userId}`, {
+  // Админ может обновлять только роль через backend-эндпоинт /admin/users/{id}/role
+  // Для изменения профиля пользователя используются /me и связанные эндпоинты.
+  return apiRequest<UserResponse>(`/admin/users/${userId}/role`, {
     method: 'PATCH',
     body: JSON.stringify(body),
   });

@@ -70,18 +70,24 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Создайте файл `.env` в папке `backend/`:
+Создайте файл `.env` в папке `backend/` (на основе `backend/.env.example`):
 
 ```env
 # База данных (PostgreSQL или SQLite по умолчанию)
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 
-# JWT
-SECRET_KEY=your-secret-key-here
+# JWT (ОБЯЗАТЕЛЬНО задать SECRET_KEY)
+SECRET_KEY=your-secure-secret-key-here
 ACCESS_TOKEN_EXPIRE_MINUTES=10080
 
 # CORS
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Админ (опционально, для автоматического создания admin-пользователя)
+# ADMIN_EMAIL=admin@example.com
+# ADMIN_PASSWORD=StrongPassword123!
+# ADMIN_FIRST_NAME=System
+# ADMIN_LAST_NAME=Admin
 
 # AI (опционально)
 GEMINI_API_KEY=your-gemini-api-key
@@ -90,14 +96,15 @@ GEMINI_API_KEY=your-gemini-api-key
 Запустите сервер:
 
 ```bash
-# Применить миграции (PostgreSQL)
+# Вариант 1: PostgreSQL (рекомендуется для продакшена)
 alembic upgrade head
+uvicorn app.main:app --reload --port 8000
 
-# Запустить сервер
+# Вариант 2: SQLite для локальной разработки
+# При DATABASE_URL=sqlite:///./qazedu.db все таблицы будут созданы автоматически
+# при старте приложения через SQLModel.metadata.create_all(engine).
 uvicorn app.main:app --reload --port 8000
 ```
-
-> При использовании SQLite миграции применяются автоматически при старте.
 
 Backend: http://localhost:8000  
 Swagger UI: http://localhost:8000/docs

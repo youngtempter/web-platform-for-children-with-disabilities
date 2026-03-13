@@ -1,5 +1,4 @@
 """Application configuration from environment variables."""
-import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,7 +12,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./qazedu.db"
 
     # JWT
-    secret_key: str = "change-me-in-production"
+    # Секретный ключ ДОЛЖЕН быть задан через переменную окружения/файл .env
+    secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
@@ -22,6 +22,12 @@ class Settings(BaseSettings):
 
     # AI (Gemini)
     gemini_api_key: str = ""
+
+    # Admin seed credentials (должны явно задаваться через env при необходимости)
+    admin_email: str | None = None
+    admin_password: str | None = None
+    admin_first_name: str | None = None
+    admin_last_name: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
