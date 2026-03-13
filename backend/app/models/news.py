@@ -15,6 +15,8 @@ class News(SQLModel, table=True):
     content_kz: str = Field(default="")
     video_url: str | None = Field(default=None)
     image_url: str | None = Field(default=None)
+    media_url: str | None = Field(default=None)
+    media_type: str | None = Field(default=None)  # "youtube", "image" or None
     is_published: bool = Field(default=True)
     author_id: int = Field(foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)

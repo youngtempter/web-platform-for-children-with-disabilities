@@ -224,8 +224,10 @@ export interface NewsResponse {
   title_kz: string;
   content_ru: string;
   content_kz: string;
-  video_url: string | null;
-  image_url: string | null;
+  video_url: string | null; // legacy
+  image_url: string | null; // legacy
+  media_url: string | null;
+  media_type: 'youtube' | 'image' | null;
   is_published: boolean;
   author_id: number;
   created_at: string;
@@ -237,8 +239,7 @@ export interface NewsCreate {
   title_kz?: string;
   content_ru: string;
   content_kz?: string;
-  video_url?: string | null;
-  image_url?: string | null;
+  media_url?: string | null;
   is_published?: boolean;
 }
 
@@ -247,8 +248,7 @@ export interface NewsUpdate {
   title_kz?: string;
   content_ru?: string;
   content_kz?: string;
-  video_url?: string | null;
-  image_url?: string | null;
+  media_url?: string | null;
   is_published?: boolean;
 }
 

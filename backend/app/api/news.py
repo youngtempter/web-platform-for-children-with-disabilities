@@ -73,6 +73,20 @@ def list_all_news_admin(
     )
 
 
+def _detect_media(url: str | None) -> tuple[str | None, str | None]:
+    """Return (media_url, media_type) based on raw URL."""
+    if not url:
+        return None, None
+    lower = url.lower()
+    if "youtube.com" in lower or "youtu.be" in lower:
+        return url, "youtube"
+    # naive image detection by extension; still optional on frontend
+    if lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
+        return url, "image"
+    # fallback: treat as image for arbitrary image URLs
+    return url, "image"
+
+
 @router.post("", response_model=NewsResponse, status_code=status.HTTP_201_CREATED)
 def create_news(
     body: NewsCreate,
@@ -82,13 +96,27 @@ def create_news(
     """Create new news item. Admin only."""
     require_admin(current_user)
     
+    # Determine effective media from provided fields (prefer media_url, then video/image)
+    raw_url = body.media_url or body.video_url or body.image_url
+    media_url, media_type = _detect_media(raw_url)
+
+    # Backwards-compatible: also populate legacy video_url/image_url
+    legacy_video_url: str | None = None
+    legacy_image_url: str | None = None
+    if media_type == "youtube":
+        legacy_video_url = media_url
+    elif media_type == "image":
+        legacy_image_url = media_url
+
     news = News(
         title_ru=body.title_ru,
         title_kz=body.title_kz,
         content_ru=body.content_ru,
         content_kz=body.content_kz,
-        video_url=body.video_url,
-        image_url=body.image_url,
+        video_url=legacy_video_url,
+        image_url=legacy_image_url,
+        media_url=media_url,
+        media_type=media_type,
         is_published=body.is_published,
         author_id=current_user.id,
     )
@@ -121,10 +149,24 @@ def update_news(
         news.content_ru = body.content_ru
     if body.content_kz is not None:
         news.content_kz = body.content_kz
-    if body.video_url is not None:
-        news.video_url = body.video_url if body.video_url else None
-    if body.image_url is not None:
-        news.image_url = body.image_url if body.image_url else None
+
+    # Media update: prefer explicit media_url, otherwise fall back to legacy fields for compatibility
+    new_raw_url: str | None = None
+    if body.media_url is not None:
+        # empty string should clear media
+        new_raw_url = body.media_url or None
+    elif body.video_url is not None or body.image_url is not None:
+        # if legacy fields come in, combine them
+        new_raw_url = body.video_url or body.image_url
+
+    if new_raw_url is not None:
+        media_url, media_type = _detect_media(new_raw_url)
+        news.media_url = media_url
+        news.media_type = media_type
+        # keep legacy columns in sync for old clients
+        news.video_url = media_url if media_type == "youtube" else None
+        news.image_url = media_url if media_type == "image" else None
+
     if body.is_published is not None:
         news.is_published = body.is_published
     

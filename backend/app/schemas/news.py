@@ -12,6 +12,8 @@ class NewsCreate(BaseModel):
     content_kz: str = ""
     video_url: str | None = None
     image_url: str | None = None
+    media_url: str | None = None
+    media_type: str | None = None
     is_published: bool = True
 
 
@@ -24,6 +26,8 @@ class NewsUpdate(BaseModel):
     content_kz: str | None = None
     video_url: str | None = None
     image_url: str | None = None
+    media_url: str | None = None
+    media_type: str | None = None
     is_published: bool | None = None
 
 
@@ -37,6 +41,8 @@ class NewsResponse(BaseModel):
     content_kz: str
     video_url: str | None
     image_url: str | None
+    media_url: str | None
+    media_type: str | None
     is_published: bool
     author_id: int
     created_at: datetime

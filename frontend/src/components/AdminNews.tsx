@@ -23,8 +23,7 @@ export function AdminNews() {
   const [titleKz, setTitleKz] = useState('');
   const [contentRu, setContentRu] = useState('');
   const [contentKz, setContentKz] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
   useEffect(() => {
@@ -49,8 +48,7 @@ export function AdminNews() {
     setTitleKz('');
     setContentRu('');
     setContentKz('');
-    setVideoUrl('');
-    setImageUrl('');
+    setMediaUrl('');
     setIsPublished(true);
     setShowCreate(false);
     setEditingId(null);
@@ -65,8 +63,7 @@ export function AdminNews() {
         title_kz: titleKz.trim(),
         content_ru: contentRu.trim(),
         content_kz: contentKz.trim(),
-        video_url: videoUrl.trim() || null,
-        image_url: imageUrl.trim() || null,
+        media_url: mediaUrl.trim() || null,
         is_published: isPublished,
       });
       resetForm();
@@ -85,8 +82,8 @@ export function AdminNews() {
     setTitleKz(item.title_kz);
     setContentRu(item.content_ru);
     setContentKz(item.content_kz);
-    setVideoUrl(item.video_url || '');
-    setImageUrl(item.image_url || '');
+    // populate mediaUrl from new field or fall back to legacy
+    setMediaUrl(item.media_url || item.video_url || item.image_url || '');
     setIsPublished(item.is_published);
   };
 
@@ -99,8 +96,7 @@ export function AdminNews() {
         title_kz: titleKz.trim(),
         content_ru: contentRu.trim(),
         content_kz: contentKz.trim(),
-        video_url: videoUrl.trim() || null,
-        image_url: imageUrl.trim() || null,
+        media_url: mediaUrl.trim() || null,
         is_published: isPublished,
       });
       resetForm();
@@ -189,40 +185,26 @@ export function AdminNews() {
               />
             </div>
           </div>
-          {/* Media fields */}
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <Label className="text-xs flex items-center gap-1">
-                <Video className="w-3 h-3" />
-                {t('Ссылка на видео (YouTube)', 'Видео сілтемесі (YouTube)')}
-              </Label>
-              <Input
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="mt-1 h-9 rounded-lg dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
-            <div>
-              <Label className="text-xs flex items-center gap-1">
-                <Image className="w-3 h-3" />
-                {t('Ссылка на изображение', 'Сурет сілтемесі')}
-              </Label>
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/image.jpg"
-                className="mt-1 h-9 rounded-lg dark:bg-gray-700 dark:border-gray-600"
-              />
-            </div>
+          {/* Media field */}
+          <div className="mt-4">
+            <Label className="text-xs flex items-center gap-1">
+              <Video className="w-3 h-3" />
+              {t('Медиа (YouTube или изображение)', 'Медиа (YouTube немесе сурет)')}
+            </Label>
+            <Input
+              value={mediaUrl}
+              onChange={(e) => setMediaUrl(e.target.value)}
+              placeholder={t('Вставьте ссылку на YouTube или изображение (необязательно)', 'YouTube не сурет сілтемесін енгізіңіз (міндетті емес)')}
+              className="mt-1 h-9 rounded-lg dark:bg-gray-700 dark:border-gray-600"
+            />
           </div>
 
-          {/* Image preview */}
-          {imageUrl && (
+          {/* Превью изображения, если ссылка не на YouTube */}
+          {mediaUrl && !mediaUrl.toLowerCase().includes('youtu') && (
             <div className="mt-3">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('Превью изображения:', 'Сурет алдын ала қарау:')}</p>
               <img
-                src={imageUrl}
+                src={mediaUrl}
                 alt="Preview"
                 className="max-h-32 rounded-lg border border-gray-200 dark:border-gray-600 object-cover"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

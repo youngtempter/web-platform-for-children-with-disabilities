@@ -72,18 +72,34 @@ export function NewsBlock({ limit = 5 }: NewsBlockProps) {
 
       <div className="space-y-4">
         {news.map((item) => {
-          const youtubeId = item.video_url ? getYouTubeId(item.video_url) : null;
-          const isVideoExpanded = expandedVideo === item.id;
+          // Determine effective media URL and type (backwards-compatible with legacy fields)
+          const rawMediaUrl = item.media_url || item.video_url || item.image_url || null;
+          let mediaType: 'youtube' | 'image' | null = item.media_type;
+          let youtubeId: string | null = null;
+
+          if (rawMediaUrl && !mediaType) {
+            const id = getYouTubeId(rawMediaUrl);
+            if (id) {
+              mediaType = 'youtube';
+              youtubeId = id;
+            } else {
+              mediaType = 'image';
+            }
+          } else if (rawMediaUrl && mediaType === 'youtube') {
+            youtubeId = getYouTubeId(rawMediaUrl);
+          }
+
+          const isVideoExpanded = mediaType === 'youtube' && youtubeId && expandedVideo === item.id;
 
           return (
             <div key={item.id} className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
-              {/* Image */}
-              {item.image_url && (
+              {/* Изображение */}
+              {mediaType === 'image' && rawMediaUrl && (
                 <div className="mb-2 rounded-lg overflow-hidden">
                   <img
-                    src={item.image_url}
+                    src={rawMediaUrl}
                     alt=""
-                    className="w-full h-32 object-cover"
+                    className="w-full max-h-56 object-cover rounded-lg md:max-h-64"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
@@ -96,8 +112,8 @@ export function NewsBlock({ limit = 5 }: NewsBlockProps) {
                 {language === 'kz' && item.content_kz ? item.content_kz : item.content_ru}
               </p>
 
-              {/* Video thumbnail/player */}
-              {youtubeId && (
+              {/* Видео YouTube: превью или плеер */}
+              {mediaType === 'youtube' && youtubeId && (
                 <div className="mb-2">
                   {isVideoExpanded ? (
                     <div className="aspect-video rounded-lg overflow-hidden">
