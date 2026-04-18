@@ -1,9 +1,10 @@
-"""Email sending service via SMTP (aiosmtplib)."""
+"""Email sending service — Resend API (primary) or SMTP fallback."""
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import aiosmtplib
+import httpx
 
 from app.core.config import settings
 
@@ -55,7 +56,7 @@ _VERIFICATION_HTML = """\
           <td style="background:#f9fafb;padding:16px 40px;
                      border-top:1px solid #e5e7eb;text-align:center;">
             <p style="color:#9ca3af;font-size:12px;margin:0;">
-              © 2026 QazEdu Special · qazedu.kz
+              © 2026 QazEdu Special
             </p>
           </td>
         </tr>
@@ -109,7 +110,7 @@ _RESET_HTML = """\
           <td style="background:#f9fafb;padding:16px 40px;
                      border-top:1px solid #e5e7eb;text-align:center;">
             <p style="color:#9ca3af;font-size:12px;margin:0;">
-              © 2026 QazEdu Special · qazedu.kz
+              © 2026 QazEdu Special
             </p>
           </td>
         </tr>
@@ -121,55 +122,58 @@ _RESET_HTML = """\
 """
 
 
-async def send_password_reset_email(to_email: str, name: str, token: str) -> None:
-    """Send password-reset letter. Raises on SMTP failure."""
-    reset_url = f"{settings.frontend_url.rstrip('/')}?reset_token={token}"
+async def _send_via_resend(to_email: str, subject: str, html: str) -> None:
+    from_addr = f"{settings.smtp_from_name} <onboarding@resend.dev>"
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json={"from": from_addr, "to": [to_email], "subject": subject, "html": html},
+            timeout=15,
+        )
+        resp.raise_for_status()
 
-    html = _RESET_HTML.format(name=name or to_email, url=reset_url)
 
+async def _send_via_smtp(to_email: str, subject: str, html: str) -> None:
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Сброс пароля — QazEdu Special"
+    msg["Subject"] = subject
     msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email or settings.smtp_username}>"
     msg["To"] = to_email
     msg.attach(MIMEText(html, "html", "utf-8"))
+    await aiosmtplib.send(
+        msg,
+        hostname=settings.smtp_host,
+        port=settings.smtp_port,
+        start_tls=True,
+        username=settings.smtp_username,
+        password=settings.smtp_password,
+    )
 
-    try:
-        await aiosmtplib.send(
-            msg,
-            hostname=settings.smtp_host,
-            port=settings.smtp_port,
-            start_tls=True,
-            username=settings.smtp_username,
-            password=settings.smtp_password,
-        )
-        logger.info("Password reset email sent to %s", to_email)
-    except Exception:
-        logger.exception("Failed to send password reset email to %s", to_email)
-        raise
+
+async def _send(to_email: str, subject: str, html: str) -> None:
+    if settings.resend_api_key:
+        await _send_via_resend(to_email, subject, html)
+    else:
+        await _send_via_smtp(to_email, subject, html)
 
 
 async def send_verification_email(to_email: str, name: str, token: str) -> None:
-    """Send email-verification letter. Raises on SMTP failure."""
     verify_url = f"{settings.backend_url.rstrip('/')}/api/auth/verify?token={token}"
-
     html = _VERIFICATION_HTML.format(name=name or to_email, url=verify_url)
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Подтверждение аккаунта — QazEdu Special"
-    msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email or settings.smtp_username}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(html, "html", "utf-8"))
-
     try:
-        await aiosmtplib.send(
-            msg,
-            hostname=settings.smtp_host,
-            port=settings.smtp_port,
-            start_tls=True,
-            username=settings.smtp_username,
-            password=settings.smtp_password,
-        )
+        await _send(to_email, "Подтверждение аккаунта — QazEdu Special", html)
         logger.info("Verification email sent to %s", to_email)
     except Exception:
         logger.exception("Failed to send verification email to %s", to_email)
+        raise
+
+
+async def send_password_reset_email(to_email: str, name: str, token: str) -> None:
+    reset_url = f"{settings.frontend_url.rstrip('/')}?reset_token={token}"
+    html = _RESET_HTML.format(name=name or to_email, url=reset_url)
+    try:
+        await _send(to_email, "Сброс пароля — QazEdu Special", html)
+        logger.info("Password reset email sent to %s", to_email)
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", to_email)
         raise
