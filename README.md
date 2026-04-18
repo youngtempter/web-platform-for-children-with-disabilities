@@ -9,316 +9,242 @@ QazEdu Special — веб‑платформа дистанционного об
 
 ### Основные возможности
 
-- **Курсы и уроки**: структурированные учебные материалы, уроки с видео (YouTube и другие источники), текстовым контентом и возможностью добавления субтитров/жестового сопровождения.
-- **Интерактивные квизы**: тесты по урокам с автоматической проверкой ответов, подсчётом баллов и сохранением попыток.
-- **Система прогресса**: отслеживание прохождения уроков и курсов, статистика по завершённым урокам и курсам.
-- **Сообщество**: “стена успехов” (success posts) с лайками, а также список учебных друзей на основе общих курсов.
-- **Новости платформы**: лента новостей с медиаконтентом (YouTube‑видео или изображения).
-- **AI‑помощник**: интеграция с Google Gemini для ответов на вопросы и помощи в обучении.
-- **Роли и доступы**: раздельный функционал для студента, учителя и администратора.
-- **Двуязычный интерфейс**: русский и казахский языки.
-- **Светлая/тёмная тема**: адаптация интерфейса под предпочтения пользователя.
+- **Курсы и уроки**: структурированные учебные материалы с видео, текстом, субтитрами и жестовым сопровождением.
+- **Интерактивные квизы**: тесты с автопроверкой, подсчётом баллов и сохранением попыток.
+- **Прогресс**: отслеживание прохождения уроков и курсов.
+- **Сообщество**: "стена успехов" с лайками и список учебных друзей.
+- **Новости**: лента с медиаконтентом (YouTube/изображения).
+- **AI‑помощник**: интеграция с Google Gemini.
+- **Аутентификация**: email‑верификация, Google OAuth, сброс пароля по email.
+- **Роли**: student, teacher, admin.
+- **Двуязычный интерфейс**: русский и казахский.
+- **Светлая/тёмная тема**.
 
 ## Технологии
 
 | Компонент | Стек |
 |-----------|------|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Radix UI, shadcn/ui |
-| Backend | FastAPI, SQLModel, PostgreSQL / SQLite, Alembic |
-| Аутентификация | JWT (JSON Web Tokens), хэширование паролей (bcrypt) |
-| AI | Google Gemini API (`google-genai`) |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend | FastAPI, SQLModel, PostgreSQL (Neon), Alembic |
+| Аутентификация | JWT, bcrypt, email‑верификация (aiosmtplib), Google OAuth (authlib) |
+| Безопасность | slowapi (rate limiting), CSP/XSS headers, SessionMiddleware |
+| AI | Google Gemini API |
+| Деплой | Railway (backend), Vercel (frontend) |
+| Docker | docker-compose для локального запуска |
 
 ## Структура проекта
 
 ```text
 web-platform-for-children-with-disabilities/
-├── frontend/                  # React + Vite (SPA)
-│   ├── src/
-│   │   ├── api/               # API‑клиенты (auth, me, courses, lessons, quizzes, progress, news, admin, teacher, community, ai)
-│   │   ├── components/        # Страницы и крупные UI‑блоки (AuthPage, Dashboard, Courses, Lessons, News, Community, AIChat и др.)
-│   │   ├── components/ui/     # Библиотека UI‑компонентов (shadcn/ui)
-│   │   └── contexts/          # Контексты: аутентификация, язык, тема
-│   ├── package.json
-│   └── vite.config.ts
-│
-└── backend/                   # FastAPI
-    ├── app/
-    │   ├── api/               # Роуты: auth, users, courses, lessons, enrollments, quizzes, progress, admin, teacher, news, community, ai
-    │   ├── models/            # Модели БД (User, Course, Lesson, Enrollment, Quiz, Question, Answer, QuizAttempt, LessonProgress, News, SuccessPost, SuccessPostLike)
-    │   ├── schemas/           # Pydantic‑схемы запросов и ответов
-    │   ├── core/              # Настройки, конфигурация, безопасность, seed‑логика
-    │   ├── db/                # Подключение к БД и сессия (`engine`, `get_session`, `create_db_and_tables`)
-    │   └── main.py            # Точка входа FastAPI, подключение всех роутов и CORS
-    ├── alembic/               # Миграции Alembic (структура таблиц для PostgreSQL)
-    └── requirements.txt
+├── docker-compose.yml             # Локальный запуск (backend + frontend)
+├── frontend/
+│   ├── Dockerfile                 # Multi-stage: node builder + nginx
+│   ├── nginx.conf                 # SPA routing + /api proxy на backend
+│   ├── vercel.json                # Vercel SPA rewrites
+│   └── src/
+│       ├── api/                   # API‑клиенты
+│       ├── components/            # Страницы и UI‑блоки
+│       ├── components/ui/         # shadcn/ui компоненты
+│       └── contexts/              # Auth, язык, тема
+└── backend/
+    ├── Dockerfile
+    ├── requirements.txt
+    └── app/
+        ├── api/                   # Роуты: auth, users, courses, lessons, enrollments, quizzes, progress, admin, teacher, news, community, ai
+        ├── models/                # SQLModel модели
+        ├── schemas/               # Pydantic схемы
+        ├── core/                  # config, security, email, limiter, seed
+        ├── db/                    # engine, session
+        └── main.py                # FastAPI app, middleware, роуты
 ```
 
-## Запуск проекта
+## Запуск с Docker (рекомендуется)
 
-### 1. Backend
+```bash
+# Клонировать репо
+git clone https://github.com/kaldybekoff/web-platform-for-children-with-disabilities.git
+cd web-platform-for-children-with-disabilities
+
+# Создать backend/.env (см. раздел ниже)
+
+# Запустить
+docker-compose up --build
+```
+
+- Фронтенд: http://localhost:3000  
+- Бэкенд API: http://localhost:8000  
+- Swagger UI: http://localhost:8000/docs
+
+При изменении кода пересобрать: `docker-compose up --build`  
+Остановить: `docker-compose down`
+
+## Запуск вручную
+
+### Backend
 
 ```bash
 cd backend
-
-# Создать виртуальное окружение
 python -m venv .venv
-
-# Активировать (Windows PowerShell)
-.venv\Scripts\Activate.ps1
-
-# Активировать (macOS/Linux)
-source .venv/bin/activate
-
-# Установить зависимости
+.venv\Scripts\Activate.ps1        # Windows
+# source .venv/bin/activate       # macOS/Linux
 pip install -r requirements.txt
-```
-
-Создайте файл `.env` в папке `backend/` (на основе `backend/.env.example`):
-
-```env
-# База данных (PostgreSQL или SQLite)
-DATABASE_URL=postgresql://user:password@host:5432/dbname
-
-# JWT (ОБЯЗАТЕЛЬНО задать SECRET_KEY)
-# Сгенерировать можно, например:
-# python -c "import secrets; print(secrets.token_urlsafe(32))"
-SECRET_KEY=your-secure-secret-key-here
-ACCESS_TOKEN_EXPIRE_MINUTES=10080
-
-# CORS (список разрешённых origin, через запятую)
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-
-# Админ (опционально, для автоматического создания admin‑пользователя при старте)
-# Администратор будет создан ТОЛЬКО если заданы все поля ниже.
-# ADMIN_EMAIL=admin@example.com
-# ADMIN_PASSWORD=StrongPassword123!
-# ADMIN_FIRST_NAME=System
-# ADMIN_LAST_NAME=Admin
-
-# AI (опционально, для AI‑помощника)
-# GEMINI_API_KEY=your-gemini-api-key
-```
-
-Запуск backend‑сервера:
-
-```bash
-# Вариант 1: PostgreSQL (рекомендуется для продакшена)
 alembic upgrade head
 python -m uvicorn app.main:app --reload --port 8000
-
-# Вариант 2: SQLite для локальной разработки
-# Например: DATABASE_URL=sqlite:///./qazedu.db
-# При SQLite все таблицы создаются автоматически при старте приложения
-# через create_db_and_tables(), без Alembic‑миграций.
-python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Backend: `http://localhost:8000`  
-Swagger UI: `http://localhost:8000/docs`
-
-### 2. Frontend
+### Frontend
 
 ```bash
 cd frontend
-
-# Установить зависимости
 npm install
-
-# Запустить dev‑сервер
 npm run dev
 ```
 
-Frontend: `http://localhost:5173`
+Frontend: http://localhost:5173 (Vite проксирует `/api` на backend)
 
-> Vite проксирует запросы `/api` на backend (см. `vite.config.ts`).
+## Переменные окружения (backend/.env)
+
+Создай `backend/.env` на основе `backend/.env.example`:
+
+```env
+# База данных
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+# JWT
+SECRET_KEY=your-secure-secret-key   # python -c "import secrets; print(secrets.token_urlsafe(32))"
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+
+# CORS
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Админ (автосоздание при старте)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=StrongPassword123!
+ADMIN_FIRST_NAME=System
+ADMIN_LAST_NAME=Admin
+
+# AI (опционально)
+GEMINI_API_KEY=your-gemini-api-key
+
+# Email верификация (Gmail App Password)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx
+SMTP_FROM_EMAIL=your@gmail.com
+SMTP_FROM_NAME=QazEdu Special
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
+```
+
+## Деплой
+
+### Backend → Railway
+
+1. Создай проект на [railway.app](https://railway.app) из GitHub репо
+2. Root Directory: `backend`
+3. Добавь все переменные из `.env` в Variables
+4. Обнови `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS` на продакшн URL
+
+### Frontend → Vercel
+
+1. Импортируй репо на [vercel.com](https://vercel.com)
+2. Root Directory: `frontend`
+3. Добавь переменную: `VITE_API_URL=https://your-railway-url.railway.app`
+
+### Google OAuth (продакшн)
+
+В Google Cloud Console → Credentials → OAuth Client добавь Authorized redirect URI:
+```
+https://your-railway-url.railway.app/api/auth/google/callback
+```
 
 ## Аутентификация и роли
 
-- Аутентификация реализована через JWT (Bearer‑токен в заголовке `Authorization`).  
-- Пользователь логинится через `/api/auth/login` и получает токен и информацию о себе.  
-- В приложении используются три роли: **student**, **teacher**, **admin**.
+- **JWT** — Bearer‑токен в `Authorization` заголовке
+- **Email верификация** — при регистрации отправляется письмо со ссылкой
+- **Google OAuth** — вход через Google аккаунт
+- **Forgot Password** — письмо со ссылкой для сброса (TTL 1 час)
+- **Rate limiting** — 5/мин регистрация, 10/мин логин, 3/мин resend/forgot
 
-### Ученик (student)
+### Роли
 
-- Регистрация и вход в систему.
-- Просмотр каталога курсов и запись на курсы.
-- Просмотр уроков с видео и текстовым контентом.
-- Прохождение квизов по урокам.
-- Отслеживание прогресса по урокам и курсам в профиле.
-- Публикация постов в “стене успехов” и лайки чужих постов.
-- Просмотр учебных друзей (другие студенты с общими курсами).
-- Общение с AI‑помощником (чат).
-- Просмотр новостей платформы.
-- Редактирование профиля и смена пароля.
-
-### Учитель (teacher)
-
-- Создание и редактирование собственных курсов.
-- Добавление и редактирование уроков в своих курсах.
-- Создание и настройка квизов (вопросы, ответы, порядок, проходной балл).
-- Просмотр статистики по своим студентам (прогресс по курсам, результаты квизов).
-- Участие в сообществе (стена успехов).
-- Редактирование своего профиля и смена пароля.
-
-### Администратор (admin)
-
-- Просмотр агрегированной статистики платформы (количество пользователей, курсов, уроков, записей и т.д.).
-- Управление пользователями (список, просмотр, удаление).
-- Изменение ролей пользователей через специальный endpoint.
-- Управление всеми курсами (через административные компоненты фронтенда).
-- Создание, редактирование и управление новостями платформы.
+| Роль | Возможности |
+|------|-------------|
+| **student** | Курсы, уроки, квизы, прогресс, сообщество, AI‑чат |
+| **teacher** | Создание курсов/уроков/квизов, статистика студентов |
+| **admin** | Управление пользователями, курсами, новостями, статистика |
 
 ## Основные API endpoints
 
-Ниже приведён обзор основных маршрутов. Все пути указаны с учётом префикса `/api`, который добавляется в `app.main`.
+### Аутентификация
 
-### Аутентификация (`app/api/auth.py`)
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| POST | `/api/auth/register` | Регистрация (отправляет письмо верификации) |
+| POST | `/api/auth/login` | Вход, выдача JWT |
+| GET | `/api/auth/verify` | Подтверждение email по токену из письма |
+| POST | `/api/auth/resend-verification` | Повторная отправка письма верификации |
+| POST | `/api/auth/forgot-password` | Запрос сброса пароля |
+| POST | `/api/auth/reset-password` | Установка нового пароля |
+| GET | `/api/auth/google` | Редирект на Google OAuth |
+| GET | `/api/auth/google/callback` | Callback Google OAuth |
 
-| Метод | Endpoint              | Описание                              |
-|-------|-----------------------|---------------------------------------|
-| POST  | `/api/auth/register`  | Регистрация нового пользователя       |
-| POST  | `/api/auth/login`     | Вход, выдача JWT и данных пользователя |
+### Профиль
 
-### Профиль и личный кабинет (`app/api/users.py`, `app/api/auth.py`)
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| GET | `/api/me` | Текущий пользователь |
+| PATCH | `/api/me` | Обновление профиля |
+| POST | `/api/me/password` | Смена пароля |
+| GET | `/api/me/achievements` | Статистика достижений |
+| GET | `/api/me/study-friends` | Учебные друзья |
 
-| Метод | Endpoint               | Описание                               |
-|-------|------------------------|----------------------------------------|
-| GET   | `/api/me`              | Текущий пользователь                   |
-| PATCH | `/api/me`              | Обновление профиля (имя, фамилия, email) |
-| POST  | `/api/me/password`     | Смена пароля                           |
-| GET   | `/api/me/achievements` | Статистика достижений                  |
-| GET   | `/api/me/study-friends`| Список учебных друзей                  |
+### Курсы и уроки
 
-### Курсы (`app/api/courses.py`, `app/api/enrollments.py`)
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| GET | `/api/courses` | Список курсов |
+| GET/POST/PATCH/DELETE | `/api/courses/{id}` | CRUD курса |
+| POST | `/api/courses/{id}/enroll` | Запись на курс |
+| GET/POST/PATCH/DELETE | `/api/lessons/{id}` | CRUD уроков |
+| POST | `/api/lessons/{id}/complete` | Отметить урок завершённым |
 
-| Метод | Endpoint                    | Описание                                        |
-|-------|-----------------------------|-------------------------------------------------|
-| GET   | `/api/courses`             | Список доступных курсов                         |
-| GET   | `/api/courses/{course_id}` | Детали курса                                   |
-| POST  | `/api/courses`             | Создать курс (teacher/admin)                    |
-| PATCH | `/api/courses/{course_id}` | Обновить курс (teacher‑владелец или admin)      |
-| DELETE| `/api/courses/{course_id}` | Удалить курс (teacher‑владелец или admin)       |
-| POST  | `/api/courses/{course_id}/enroll` | Записаться на курс (student)            |
-| GET   | `/api/my-courses`         | Список курсов, на которые записан студент       |
+### Квизы, новости, сообщество, AI
 
-### Уроки (`app/api/lessons.py`)
-
-| Метод | Endpoint                           | Описание                                             |
-|-------|------------------------------------|------------------------------------------------------|
-| GET   | `/api/courses/{course_id}/lessons`| Список уроков курса                                  |
-| GET   | `/api/lessons/{lesson_id}`        | Получить урок (доступ проверяется по записи на курс) |
-| POST  | `/api/lessons`                    | Создать урок (teacher/admin)                         |
-| PATCH | `/api/lessons/{lesson_id}`        | Обновить урок (teacher‑владелец или admin)           |
-| DELETE| `/api/lessons/{lesson_id}`        | Удалить урок (teacher‑владелец или admin)            |
-
-### Прогресс (`app/api/progress.py`)
-
-| Метод | Endpoint                             | Описание                                      |
-|-------|--------------------------------------|-----------------------------------------------|
-| POST  | `/api/lessons/{lesson_id}/complete` | Отметить урок завершённым                     |
-| GET   | `/api/lessons/{lesson_id}/progress` | Прогресс студента по конкретному уроку        |
-| GET   | `/api/courses/{course_id}/my-progress` | Прогресс студента по курсу                 |
-
-### Квизы (`app/api/quizzes.py`)
-
-| Метод | Endpoint                                   | Описание                                        |
-|-------|--------------------------------------------|-------------------------------------------------|
-| POST  | `/api/lessons/{lesson_id}/quiz`           | Создать или обновить квиз для урока (teacher/admin) |
-| GET   | `/api/lessons/{lesson_id}/quiz`           | Получить квиз для урока                         |
-| PATCH | `/api/quizzes/{quiz_id}`                  | Обновить параметры квиза                        |
-| DELETE| `/api/quizzes/{quiz_id}`                  | Удалить квиз                                    |
-| POST  | `/api/quizzes/{quiz_id}/questions`        | Добавить вопрос                                 |
-| PATCH | `/api/questions/{question_id}`            | Обновить вопрос                                 |
-| DELETE| `/api/questions/{question_id}`            | Удалить вопрос                                  |
-| POST  | `/api/questions/{question_id}/answers`    | Добавить ответ                                  |
-| PATCH | `/api/answers/{answer_id}`                | Обновить ответ                                  |
-| DELETE| `/api/answers/{answer_id}`                | Удалить ответ                                   |
-| POST  | `/api/quizzes/{quiz_id}/submit`           | Отправить ответы студента, получить результат   |
-| GET   | `/api/quizzes/{quiz_id}/my-attempts`      | Список попыток студента по квизу                |
-
-### Новости (`app/api/news.py`)
-
-Новости поддерживают медиаконтент через универсальные поля `media_url` и `media_type`, а также legacy‑поля `video_url` и `image_url` для обратной совместимости.
-
-| Метод | Endpoint                 | Описание                                              |
-|-------|--------------------------|-------------------------------------------------------|
-| GET   | `/api/news`              | Список опубликованных новостей (для авторизованных)  |
-| GET   | `/api/news/{news_id}`    | Получить новость по ID                               |
-| GET   | `/api/news/admin/all`    | Все новости (включая неопубликованные, только admin) |
-| POST  | `/api/news`              | Создать новость (admin)                              |
-| PATCH | `/api/news/{news_id}`    | Обновить новость (admin)                             |
-| DELETE| `/api/news/{news_id}`    | Удалить новость (admin)                              |
-
-### Сообщество (`app/api/community.py`)
-
-| Метод | Endpoint                           | Описание                             |
-|-------|------------------------------------|--------------------------------------|
-| GET   | `/api/community/posts`            | Список постов успехов                |
-| POST  | `/api/community/posts`            | Создать пост                         |
-| POST  | `/api/community/posts/{post_id}/like` | Лайк/анлайк поста                |
-| DELETE| `/api/community/posts/{post_id}`  | Удалить пост (автор или admin)      |
-
-### AI‑помощник (`app/api/ai.py`)
-
-| Метод | Endpoint          | Описание                                  |
-|-------|-------------------|-------------------------------------------|
-| POST  | `/api/ai/chat`    | Отправить сообщение и получить ответ AI   |
-
-### Админ (`app/api/admin.py`)
-
-| Метод | Endpoint                         | Описание                                   |
-|-------|----------------------------------|--------------------------------------------|
-| GET   | `/api/admin/stats`              | Общая статистика по платформе             |
-| GET   | `/api/admin/users`              | Список пользователей (с пагинацией/фильтрами) |
-| GET   | `/api/admin/users/{user_id}`    | Получить пользователя                     |
-| PATCH | `/api/admin/users/{user_id}/role` | Изменить роль пользователя               |
-| DELETE| `/api/admin/users/{user_id}`    | Удалить пользователя                      |
-
-### Учитель (`app/api/teacher.py`)
-
-| Метод | Endpoint                 | Описание                                           |
-|-------|--------------------------|----------------------------------------------------|
-| GET   | `/api/teacher/stats`    | Статистика учителя по его курсам и студентам      |
-| GET   | `/api/teacher/students` | Студенты с прогрессом и статистикой по курсам/квизам |
+| Endpoint | Описание |
+|----------|----------|
+| `/api/lessons/{id}/quiz` | Квиз урока |
+| `/api/quizzes/{id}/submit` | Сдать квиз |
+| `/api/news` | Новости |
+| `/api/community/posts` | Стена успехов |
+| `/api/ai/chat` | AI‑помощник |
+| `/api/admin/*` | Админ‑панель |
+| `/api/teacher/*` | Учительская статистика |
 
 ## База данных
 
-Основные таблицы (по моделям SQLModel и миграциям Alembic):
+| Таблица | Описание |
+|---------|----------|
+| `users` | Пользователи (email, bcrypt хэш, роль, is_verified, google_id, reset_token) |
+| `courses` | Курсы |
+| `lessons` | Уроки с видео и субтитрами |
+| `enrollments` | Записи на курсы |
+| `lesson_progress` | Прогресс по урокам |
+| `quizzes` / `questions` / `answers` | Квизы |
+| `quiz_attempts` | Попытки квизов |
+| `news` | Новости |
+| `success_posts` / `success_post_likes` | Сообщество |
 
-| Таблица              | Описание |
-|----------------------|----------|
-| `users`              | Пользователи (email, захэшированный пароль, имя, фамилия, роль) |
-| `courses`            | Курсы (название, описание, уровень, учитель, обложка `image_url`) |
-| `lessons`            | Уроки (название, контент, `video_url`, `subtitle_url`, признак жестового перевода, длительность, демо‑флаг) |
-| `enrollments`        | Записи на курсы (студент, курс, текущий прогресс) |
-| `lesson_progress`    | Прогресс по урокам (студент, урок, флаг завершения, время просмотра) |
-| `quizzes`            | Квизы для уроков (урок, название, проходной балл) |
-| `questions`          | Вопросы квиза (тексты ru/kz, порядок) |
-| `answers`            | Варианты ответов (тексты ru/kz, флаг правильности, порядок) |
-| `quiz_attempts`      | Попытки прохождения квизов (студент, квиз, балл, факт прохождения, время) |
-| `news`               | Новости (заголовки и контент ru/kz, `media_url`, `media_type`, legacy‑поля `video_url`/`image_url`, статус публикации, автор, даты) |
-| `success_posts`      | Посты успехов сообщества (автор, текст, количество лайков) |
-| `success_post_likes` | Лайки постов (связь пользователь–пост) |
-
-При использовании PostgreSQL структура поддерживается и изменяется через Alembic‑миграции. При использовании SQLite для локальной разработки таблицы создаются по текущим моделям (`SQLModel.metadata`) при старте приложения.
-
-## Миграции Alembic
-
-В продакшене (PostgreSQL) рекомендуется всегда использовать Alembic:
+## Миграции
 
 ```bash
-# Применить все миграции
-alembic upgrade head
-
-# Откатить все миграции до базы
-alembic downgrade base
-
-# Создать новую миграцию на основе изменений моделей
-alembic revision --autogenerate -m "описание"
+alembic upgrade head          # Применить все миграции
+alembic downgrade base        # Откатить всё
+alembic revision --autogenerate -m "описание"   # Новая миграция
 ```
-
-При работе с SQLite в режиме локальной разработки можно не запускать Alembic: все таблицы будут созданы автоматически при старте (`create_db_and_tables()`).
-
-## Лицензия и UI‑компоненты
-
-Фронтенд использует компоненты [shadcn/ui](https://ui.shadcn.com/) (MIT License) и Radix UI в качестве основы дизайн‑системы. Остальная часть проекта предназначена для демонстрации и учебных целей.
