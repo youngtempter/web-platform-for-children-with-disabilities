@@ -1,5 +1,7 @@
 # QazEdu Special
 
+**Сайт:** https://web-platform-for-children-with-disabilities-13auzqlf4.vercel.app
+
 Инклюзивная образовательная платформа для глухих и слабослышащих детей с поддержкой видеоуроков, субтитров и жестового языка.
 
 ## О проекте
